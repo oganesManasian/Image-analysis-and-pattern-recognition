@@ -11,6 +11,11 @@ def detect_intersections(trajectory, boxes, interpolate_trajectory=True):
     last_passed_box_ind = None
     visited_boxes = []
 
+    # Make algorithm to not count robot's box as passed one
+    for box_ind, box in enumerate(boxes):
+        if is_point_in_box(trajectory[0], box):
+            last_passed_box_ind = box_ind
+
     for point in trajectory:
         for box_ind, box in enumerate(boxes):
             if is_point_in_box(point, box) and box_ind != last_passed_box_ind:
