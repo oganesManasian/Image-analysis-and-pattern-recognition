@@ -6,7 +6,7 @@ from draw import draw
 
 VIDEO_FILENAME = "robot_parcours_1.avi"
 
-ROBOT_TRACKING_METHOD = "red_channel_tracking"  # "frame_differencing"
+# ROBOT_TRACKING_METHOD = "red_channel_tracking"  # "frame_differencing"
 
 
 def main():
@@ -15,8 +15,8 @@ def main():
     print(f"Read video with {len(frames)} frames")
 
     # Extracting trajectory
-    trajectory = get_robot_locations(frames, method=ROBOT_TRACKING_METHOD)
-    draw(frames[-1], trajectory=trajectory, title=f"Extracted robot's trajectory using {ROBOT_TRACKING_METHOD}")
+    trajectory = get_robot_locations(frames, method="auto")
+    draw(frames[-1], trajectory=trajectory, title=f"Extracted robot's trajectory")
 
     # Extracting objects
     image = frames[0]
