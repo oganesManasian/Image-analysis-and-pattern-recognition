@@ -5,7 +5,7 @@ from skimage.filters import gaussian
 from skimage.morphology import binary_erosion, binary_dilation, binary_opening, binary_closing, disk, square
 from skimage.feature import canny
 from skimage.color import rgb2gray
-from skimage.transform import resize
+
 
 
 def get_robot_locations(frames, method="auto", return_centers=True):
@@ -24,7 +24,8 @@ def get_robot_locations(frames, method="auto", return_centers=True):
         # Check both methods and return best result in terms of smoothness of trajectory steps
         method_results = [frame_differencing(frames), red_channel_tracking(frames)]
         method_stds = [get_location_steps_std(robot_locations) for robot_locations in method_results]
-        print(f"Frame differencing std: {method_stds[0]}, Red channel tracking std: {method_stds[1]}")
+        print(f"Frame differencing std: {method_stds[0]}, Red channel tracking std: {method_stds[1]}.",
+              f"Decided to use {'Frame differencing' if np.argmin(method_stds) == 0 else 'Red channel tracking'}.")
         robot_locations = method_results[np.argmin(method_stds)]
     else:
         raise NotImplementedError

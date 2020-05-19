@@ -4,3 +4,4 @@ labs/.ipynb_checkpoints/*
 project/.ipynb_checkpoints/*
 project/__pycache__/*
 project/.idea/*
+project/MNIST/*
