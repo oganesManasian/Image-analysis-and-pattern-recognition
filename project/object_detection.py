@@ -1,9 +1,5 @@
-import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from skimage.filters import gaussian
-from skimage.morphology import binary_erosion, binary_dilation, binary_opening, binary_closing, disk, square
+from skimage.morphology import binary_closing, disk
 from skimage.feature import canny
 from skimage.color import rgb2gray
 
@@ -27,16 +23,12 @@ def extract_objects(image, objects_shape=(28, 28)):
             break
         shapes_mask = new_shapes_mask
 
-    # plt.figure(figsize=(10, 10))
-    # plt.imshow(shapes_mask, cmap="gray")
-    # plt.show()
-
     # Get object regions
     regions = region_growing(shapes_mask)
     regions = [np.array(region) for region in regions]
 
     # Get bounding boxes of objects
-    pad = 2
+    pad = 7
     boxes = [(max(min(region[:, 1]) - pad, 0),
               max(min(region[:, 0]) - pad, 0),
               min(max(region[:, 1]) + pad, image.shape[1]),
@@ -54,11 +46,3 @@ def extract_objects(image, objects_shape=(28, 28)):
             boxes_reduced.append(box)
 
     return boxes_reduced
-
-    # # Extract objects from image
-    # objects = [image[box[1]:box[3], box[0]:box[2]] for box in boxes_reduced]
-    #
-    # # Make objects' images to have the same size
-    # objects = [resize(obj, objects_shape) for obj in objects]
-    #
-    # return objects, boxes_reduced
