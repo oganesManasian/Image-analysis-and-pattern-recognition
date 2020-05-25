@@ -29,12 +29,23 @@ class BaseClassifier:
 
 
 class CNNClassifier(BaseClassifier):
-    def __init__(self):
+    def __init__(self, data_type):
+        self.data_type = data_type
+
         # Build model
         self.model = Conv_Net()
         # Load weights
 
-        pass
+        if self.data_type == "digits":
+            pass
+        elif self.data_type == "operators":
+            pass
+        else:
+            raise ValueError
+
+        # In case of operator return operator as string
+        if self.data_type == "operators":
+            self.pred2oper = {0: "/", 1: "=", 2: "-", 3: "*", 4: "+"}
 
     def predict(self, image):
         pass

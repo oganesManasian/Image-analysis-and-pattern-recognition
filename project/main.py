@@ -27,23 +27,36 @@ def main():
     draw(initial_image, boxes=boxes, title="Detected objects")
 
     # Find passed objects
+    print(len(trajectory))
     passed_boxes = detect_intersections(trajectory, boxes)
     draw(initial_image, trajectory=trajectory, boxes=passed_boxes, title="Passed objects")
     passed_objects = [box2image(initial_image, box) for box in passed_boxes]
 
     # Passed objects classification
-    classifier = CNNClassifier()
-    # Preprocess image (make it gray if you need)
-    # TODO
-    predictions = [classifier.predict(image) for image in passed_objects]
-    print(predictions)
+    digits = passed_objects[::2]
+    classifier_digit = CNNClassifier(data_type="digits")
+    predictions_digit = [classifier_digit.predict(image) for image in digits]
 
-    # Postprocess predictions
-    # Check that 1) digit is always followed by operation 2) last object is 'equal' sign
-    # TODO
+    operators = passed_objects[1::2]
+    classifier_operator = CNNClassifier(data_type="operators")
+    predictions_operator = [classifier_operator.predict(image) for image in operators]
+
+    predicted_seq = [None] * (len(predictions_digit) + len(predictions_operator))
+    predicted_seq[::2] = predictions_digit
+    predicted_seq[1::2] = predictions_operator
+    print("Predicted sequence:", predicted_seq)
+
+    # Postprocess predicted_seq TODO
+    # 1) digit is always followed by operation
+    # 2) check that last object is 'equal' sign
+    seq = predicted_seq
+    # seq = "2+2="
 
     # Calculate expression
-    # TODO
+    expression = "".join(seq)
+    expression_result = eval(expression[:-1])  # Eval needs expression without = sign
+    print(f"Expression evaluation\n{expression}{expression_result}")
 
 
-main()
+if __name__ == "__main__":
+    main()
