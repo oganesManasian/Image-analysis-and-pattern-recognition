@@ -1,51 +1,77 @@
-import cv2
 import numpy as np
 
 from skimage.filters import gaussian
-from skimage.morphology import binary_erosion, binary_dilation, binary_opening, binary_closing, disk, square
-from skimage.feature import canny
-from skimage.color import rgb2gray
 
+from region_growing import region_growing
 
-def get_robot_locations(frames, method="auto", return_centers=True):
+def get_robot_locations(frames, method="auto", return_centers=True, return_boxes=True):
     """
-    Tracks robot positions at each frame
-    :param method:
-    :param frames:
-    :param return_centers: If True alg returns robot's centers, else returns bounding boxes
-    :return:
+        Get robot location at each frame. The first possible method is
+        'frame_differencing' which subtracts adjacent frames in order to
+        detect robot movements. The second possible method is 'red_channel_tracking'
+        which uses the information that robot arrow is red. 'auto' method uses both 
+        and then chooses the smoothest one. You can return centers of
+        robot locations, bounding boxes of robot location or both.
+        
+        Parameters
+        ----------
+        frames : list of 2D arrays
+            The list containing all video frames
+        method : str
+            Could be either 'frame_differencing', 'red_channel_tracking' or 'auto'
+        return_centers : bool
+            True if return centers of robot locations, False if not
+        return_boxes : bool
+            True if return bounding boxes of robot locations, False if not
+            
+        Returns
+        -------
+        list or (list, list)
+            Either list of center coords, list of boxes coords or both.
     """
-    if method == "frame_differencing" and return_centers:
-        robot_locations = frame_differencing(frames)
-    elif method == "red_channel_tracking" and return_centers:
-        robot_locations = red_channel_tracking(frames)
-    elif method == "auto" and return_centers:
-        # Check both methods and return best result in terms of smoothness of trajectory steps
-        method_results = [frame_differencing(frames), red_channel_tracking(frames)]
-        method_stds = [get_location_steps_std(robot_locations) for robot_locations in method_results]
-        print(f"Frame differencing std: {method_stds[0]}, Red channel tracking std: {method_stds[1]}.",
-              f"Decided to use {'Frame differencing' if np.argmin(method_stds) == 0 else 'Red channel tracking'}.")
-        robot_locations = method_results[np.argmin(method_stds)]
-    else:
-        raise NotImplementedError
+    
+    if return_centers:
+        if method == "frame_differencing":
+            robot_locations = frame_differencing(frames)
+        elif method == "red_channel_tracking":
+            robot_locations = red_channel_tracking(frames)
+        elif method == "auto":
+            # Check both methods and return best result in terms of smoothness of trajectory steps
+            method_results = [frame_differencing(frames), red_channel_tracking(frames)]
+            method_stds = [get_location_steps_std(robot_locations) for robot_locations in method_results]
+            print(f"Frame differencing std: {method_stds[0]}, Red channel tracking std: {method_stds[1]}.",
+                  f"Decided to use {'Frame differencing' if np.argmin(method_stds) == 0 else 'Red channel tracking'}.")
+            robot_locations = method_results[np.argmin(method_stds)]
+        else:
+            raise NotImplementedError
+        
+        if not return_boxes:
+            return return_centers
+    
+    if return_boxes:
+        robot_boxes = get_bounding_boxes(frames)
+        
+        if not return_centers:
+            return robot_boxes
 
-    assert(len(robot_locations) == len(frames))  # We need to estimate robot's position at each frame
+    return robot_locations, robot_boxes
 
-    return robot_locations
-
-
-def red_channel_tracking(frames, red_threshold=100, green_threshold=100, blue_threshold=100):
+def red_channel_tracking(frames):
     """
-
-    :param frames:
-    :param red_threshold:
-    :param green_threshold:
-    :param blue_threshold:
-    :return:
+        Get centers of the red objects (arrow) over all frames.
+        
+        Parameters
+        ----------
+        frames : list of 2D arrays
+            The list containing all video frames
+            
+        Returns
+        -------
+        robot_locations : list
+            The coordinates of robot center in all frames.
     """
-    frames_red = [(frame[:, :, 0] > red_threshold) &
-                  (frame[:, :, 1] < green_threshold) &
-                  (frame[:, :, 2] < blue_threshold) for frame in frames]
+    
+    frames_red = get_red_objects(frames)
     robot_locations = [get_center(frame, threshold=0) for frame in frames_red]
 
     return robot_locations
@@ -53,11 +79,23 @@ def red_channel_tracking(frames, red_threshold=100, green_threshold=100, blue_th
 
 def frame_differencing(frames, blur_sigma=1, change_threshold=0.5):
     """
-
-    :param frames:
-    :param blur_sigma:
-    :param change_threshold:
-    :return:
+        Get robot center locations in all frames by subtracting adjacent frames
+        and detecting the robot movement. To erase the possible noise we apply
+        gaussian filter with 'blur_sigma' parameter.
+        
+        Parameters
+        ----------
+        frames : list of 2D arrays
+            The list containing all video frames
+        blur_sigma : float
+            The sigma in the gaussian filter
+        change_threshold : float
+            The threshold for calculating center of robot.
+            
+        Returns
+        -------
+        list
+            The coordinates of robot center in all frames.
     """
     # Get differences in frames
     frame_changes = []
@@ -74,6 +112,57 @@ def frame_differencing(frames, blur_sigma=1, change_threshold=0.5):
     robot_locations = postprocess_locations(robot_locations)
 
     return robot_locations
+
+def get_red_objects(frames, red_threshold=128, green_threshold=128, blue_threshold=128):
+    """
+        Get objects that are red over all frames. The red color is defined by thresholding 
+        RGB channels.
+        
+        Parameters
+        ----------
+        frames : list of 2D arrays
+            The list containing all video frames
+        red_threshold : float
+            The threshold for red channel (by default > 128)
+        green_threshold : float
+            The threshold for green channel (by default < 128)
+        blue_threshold : float
+            The threshold for blue channel (by default < 128)
+            
+        Returns
+        -------
+        list
+            The list of masks that identify red objects.
+    """
+    
+    return [(frame[:, :, 0] > red_threshold) & 
+            (frame[:, :, 1] < green_threshold) & 
+            (frame[:, :, 2] < blue_threshold) for frame in frames]
+
+def get_bounding_boxes(frames):
+    """
+        Get bounding boxes coordianates of the arrow.
+        
+        Parameters
+        ----------
+        frames : list of 2D arrays
+            The list containing all video frames
+            
+        Returns
+        -------
+        arrow_boxes : tuple of 4 numbers
+            [xmin, ymin, xmax, ymax] coordinates of the arrow box.
+    """
+    
+    frames_red = get_red_objects(frames)
+    frames_red_regions = [region_growing(frame_red) for frame_red in frames_red]
+    arrows = [np.array(max(red_regions, key=len)) for red_regions in frames_red_regions]
+    arrow_boxes = [[max(min(region[:, 1]), 0),  # also take into account image boundaries
+                   max(min(region[:, 0]), 0),
+                   min(max(region[:, 1]), image.shape[1]),
+                   min(max(region[:, 0]), image.shape[0])] for arrow in arrows]
+    
+    return arrow_boxes
 
 
 def get_center(image, threshold):
@@ -113,9 +202,7 @@ def postprocess_locations(robot_locations):
             robot_locations[i] = last_position
         else:
             last_position = robot_locations[i]
-
-    # Duplicate first location to make exact the same number of locations as frames
-    return [robot_locations[0]] + robot_locations
+    return robot_locations
 
 
 def dist_l2(point1, point2):
