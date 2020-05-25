@@ -4,7 +4,7 @@ from object_detection import extract_objects
 from intersections import detect_intersections
 from draw import draw
 from classification import CNNClassifier, FourierClasssifier
-from utils import box2image, postprocess_predicted_sequence
+from utils import box2image, postprocess_predicted_sequence, write_on_frame, create_video
 
 VIDEO_FILENAME = "robot_parcours_1.avi"
 
@@ -57,7 +57,24 @@ def main():
     print(f"Expression evaluation\n{expression}{expression_result}")
 
     # Create output video
-    # TODO
+    reversed_seq = list(reversed(seq))
+    complete_expression = ""
+    new_frames = []
+    for i in range(len(frames)):
+        # Adding char to expression if already detected
+        if len(reversed_seq) > 0 and reversed_seq[-1][1] == i:
+            complete_expression += reversed_seq.pop()[0]
+
+        # Adding the final result after the final equal sign
+        elif len(reversed_seq) == 0 and len(complete_expression) == len(seq):
+            complete_expression += str(expression_result)
+
+        # Writing on image
+        new_frame = write_on_frame(frames[i], complete_expression)
+        new_frames.append(new_frame)
+
+    # Combining frames into a video
+    create_video(new_frames, "output")
 
 
 if __name__ == "__main__":

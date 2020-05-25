@@ -10,7 +10,6 @@ binary_image = False
 operators_mean, operators_std = 0.2031257599592209, 0.279224157333374
 minst_mean, minst_std = 0.09182075411081314, 0.195708230137825
 
-
 def inverse_color(img):
     return PIL.Image.eval(img, lambda val: 255 - val)
 
