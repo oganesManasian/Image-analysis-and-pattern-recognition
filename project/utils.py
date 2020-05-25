@@ -10,3 +10,10 @@ def box2image(image, box, image_size=(30, 30)):
     :return: object bounded by box on original image
     """
     return resize(image[box[1]:box[3], box[0]:box[2]], image_size)
+
+
+def postprocess_predicted_sequence(predicted_seq):
+    # 1) substitute all 9s with 6s since there is 9s are not possible
+    # 2) check that last object is 'equal' sign
+    # TODO
+    return predicted_seq

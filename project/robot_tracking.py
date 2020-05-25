@@ -7,7 +7,6 @@ from skimage.feature import canny
 from skimage.color import rgb2gray
 
 
-
 def get_robot_locations(frames, method="auto", return_centers=True):
     """
     Tracks robot positions at each frame
@@ -29,6 +28,8 @@ def get_robot_locations(frames, method="auto", return_centers=True):
         robot_locations = method_results[np.argmin(method_stds)]
     else:
         raise NotImplementedError
+
+    assert(len(robot_locations) == len(frames))  # We need to estimate robot's position at each frame
 
     return robot_locations
 
@@ -112,7 +113,9 @@ def postprocess_locations(robot_locations):
             robot_locations[i] = last_position
         else:
             last_position = robot_locations[i]
-    return robot_locations
+
+    # Duplicate first location to make exact the same number of locations as frames
+    return [robot_locations[0]] + robot_locations
 
 
 def dist_l2(point1, point2):

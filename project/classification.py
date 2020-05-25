@@ -10,18 +10,19 @@ binary_image = False
 operators_mean, operators_std = 0.2031257599592209, 0.279224157333374
 minst_mean, minst_std = 0.09182075411081314, 0.195708230137825
 
+
 def inverse_color(img):
     return PIL.Image.eval(img, lambda val: 255 - val)
 
+
 def remove_background(img):
-    return PIL.Image.eval(img, lambda val: 0 if val < (256/2) else val)
+    return PIL.Image.eval(img, lambda val: 0 if val < (256 / 2) else val)
+
 
 def to_binary(img):
-    return PIL.Image.eval(img, lambda val: 255 if val < (256/2) else 0)
+    return PIL.Image.eval(img, lambda val: 255 if val < (256 / 2) else 0)
 
-# from keras.regularizers import L1L2
-# from keras.layers import Conv2D
-# Creating a Net class object, which consists of 2 convolutional layers, max-pool layers and fully-connected layers
+
 class Conv_Net(nn.Module):
 
     def __init__(self, out, nb_hidden=25):
@@ -32,27 +33,19 @@ class Conv_Net(nn.Module):
 
         self.fc1 = nn.Linear(64, nb_hidden)  # the first fully-connected layer, which gets flattened max-pooled set
         self.fc2 = nn.Linear(nb_hidden, out)  # the second fully-connected layer that outputs the result
+        self.relu = nn.ReLU()
+        self.pool = nn.MaxPool2d(kernel_size=2)
 
     # Creating the forward pass
     def forward(self, x):
-
-        # The first two layers
-        x = F.relu(F.max_pool2d(self.conv1(x), kernel_size=2))
-
-        # The second two layers
-        x = F.relu(F.max_pool2d(self.conv2(x), kernel_size=2))
-
-        x = F.relu(F.max_pool2d(self.conv3(x), kernel_size=2))
+        x = self.relu(self.pool(self.conv1(x)))
+        x = self.relu(self.pool(self.conv2(x)))
+        x = self.relu(self.pool(self.conv3(x)))
 
         # Flattening the data set for fully-connected layer
         x = x.view(x.size(0), -1)
-
-        # The first fully-connected layer
-        x = F.relu(self.fc1(x))
-
+        x = self.relu(self.fc1(x))
         x = nn.Dropout(p=0.3)(x)
-
-        # The second full-connected layer
         x = self.fc2(x)
 
         return x
@@ -82,7 +75,6 @@ class CNNClassifier(BaseClassifier):
         # if self.data_type == "operators":
         #     self.pred2oper = {0: "/", 1: "=", 2: "-", 3: "*", 4: "+"}
 
-
     def get_transforms(self, binary=False):
         side = 28 if self.data_type == "digits" else 25
         mean, std = (minst_mean, minst_std) if self.data_type == "digits" else (operators_mean, operators_std)
@@ -98,13 +90,14 @@ class CNNClassifier(BaseClassifier):
 
         all_transforms.extend([
             transforms.ToTensor(),
-            transforms.Normalize(mean, std)
+            transforms.Normalize((mean, ), (std, ))
         ])
 
         return transforms.Compose(all_transforms)
 
     def predict(self, image):
-        pil_img = PIL.Image.fromarray((image*255).astype(np.uint8))
+        pil_img = PIL.Image.fromarray((image * 255).astype(np.uint8))
+        # pil_img.show()
         tensor = self.get_transforms()(pil_img).unsqueeze(dim=0)
 
         class_ = self.model(tensor).argmax().item()
