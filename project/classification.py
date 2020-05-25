@@ -1,6 +1,32 @@
 import torch
 from torch import nn
-import torch.functional as F
+from torch.nn import functional as F
+from torchvision import transforms
+import PIL
+
+binary_image = True
+
+def inverse_color(img):
+    return PIL.Image.eval(img, lambda val: 255 - val)
+
+def remove_background(img):
+    return PIL.Image.eval(img, lambda val: 0 if val < (256/2) else val)
+
+def to_binary(img):
+    return PIL.Image.eval(img, lambda val: 255 if val < (256/2) else 0)
+
+all_transforms = [
+    transforms.Grayscale(num_output_channels=1),
+    transforms.Lambda(inverse_color),
+    transforms.Lambda(remove_background),
+    transforms.Resize((40, 40)),
+]
+
+if binary_image:
+    all_transforms.append(transforms.Lambda(to_binary))
+
+all_transforms.append(transforms.ToTensor())
+all_transforms = transforms.Compose(all_transforms)
 
 
 # from keras.regularizers import L1L2
@@ -57,8 +83,10 @@ class CNNClassifier(BaseClassifier):
         # Load weights
         if self.data_type == "digits":
             self.model.load_state_dict(torch.load("digit_model"))
+            self.model.eval()
         elif self.data_type == "operators":
             self.model.load_state_dict(torch.load("operator_model"))
+            self.model.eval()
         else:
             raise ValueError
 
@@ -67,10 +95,13 @@ class CNNClassifier(BaseClassifier):
             self.pred2oper = {0: "/", 1: "=", 2: "-", 3: "*", 4: "+"}
 
     def predict(self, image):
-        class_ = self.model(image).argmax()
+        pil_img = PIL.Image.fromarray(image, mode="RGB")
+        pil_img.show()
+        tensor = all_transforms(pil_img).unsqueeze(dim=0)
+        class_ = self.model(tensor).argmax().item()
 
         if self.data_type == "digits":
-            return class_
+            return str(class_)
         elif self.data_type == "operators":
             mapping = {0: "/", 1: "=", 2: "-", 3: "*", 4: "+"}
             return mapping[class_]
