@@ -36,6 +36,33 @@ def detect_intersections(trajectory_raw, boxes, interpolate_trajectory=True, int
 
     return visited_boxes
 
+def detect_intersections_reverse(robot_boxes, object_centers):
+    """
+        Detect the intersections of robot positions and symbol positions by boundaring
+        object center coordinates with coordinates of robot boxes.
+        
+        Parameters
+        ----------
+        robot_boxes : list of 4 float numberts
+            The robot boxes coordinates at each frame
+        object_centers : list
+            The coordinates of object centers
+            
+        Returns
+        -------
+        list of 2 elements
+            The list containing the coordinates of object center and frame index
+    """
+    visited_object_centers = []
+    last_passed_center_i = None
+    
+    for box_i, robot_box in enumerate(robot_boxes):
+        for object_i, object_center in enumerate(object_centers):
+            if is_point_in_box(object_center, robot_box) and object_i != last_passed_center_i:
+                visited_object_centers.append([object_center, box_i])
+                last_passed_center_i = object_i
+                
+    return visited_object_centers
 
 def is_point_in_box(point, box):
     return box[0] <= point[0] <= box[2] and box[1] <= point[1] <= box[3]
