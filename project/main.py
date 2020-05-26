@@ -18,17 +18,17 @@ def main():
     print(f"Read video with {len(frames)} frames")
 
     # Extracting trajectory
-    trajectory = get_robot_locations(frames, method="auto")
-    draw(frames[-1], trajectory=trajectory, title=f"Extracted robot's trajectory")
+    robot_trajectory, robot_boxes = get_robot_locations(frames, method="auto")
+    draw(frames[-1], trajectory=robot_trajectory, title=f"Extracted robot's trajectory")
 
     # Extracting objects
     initial_image = frames[0]
-    boxes = extract_objects(initial_image)
-    draw(initial_image, boxes=boxes, title="Detected objects")
+    object_centers, object_boxes = extract_objects(initial_image)
+    draw(initial_image, boxes=object_boxes, title="Detected objects")
 
     # Find passed objects
-    passed_boxes = detect_intersections(trajectory, boxes)
-    draw(initial_image, trajectory=trajectory, boxes=[box for (box, _) in passed_boxes], title="Passed objects")
+    passed_boxes = detect_intersections(robot_trajectory, object_boxes)
+    draw(initial_image, trajectory=robot_trajectory, boxes=[box for (box, _) in passed_boxes], title="Passed objects")
     passed_objects = [(box2image(initial_image, box), frame_ind) for (box, frame_ind) in passed_boxes]
     print(f"Passed through {len(passed_objects)} objects")
 

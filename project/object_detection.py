@@ -6,8 +6,7 @@ from skimage.color import rgb2gray
 
 from region_growing import region_growing
 
-
-def extract_objects(image, method='otsu'):
+def extract_objects(image, method='otsu', return_boxes=True, return_centers=True):
     """
         Get extracted objects (operators and digits) from the image. 
         You can use different methods to do that. 'canny' method which uses 
@@ -16,6 +15,8 @@ def extract_objects(image, method='otsu'):
         
         Also during shapes extraction from mask you can use either binary_closing 
         (by default) or binary_dilation.
+        
+        You can extract both object bounding boxes or object centers.
         
         Parameters
         ----------
@@ -28,8 +29,8 @@ def extract_objects(image, method='otsu'):
             
         Returns
         -------
-        boxes_reduced : list
-            The list of object (operators and digits) boxes.
+        list or (list, list)
+            The list of object centers or the object boxes or both.
     """
     
     # Get grayscaled image
@@ -90,14 +91,25 @@ def extract_objects(image, method='otsu'):
 
     # Delete false object detections
     boxes_reduced = []
+    regions_reduced = []
     threshold_ratio = 5
     min_height_threshold = 10
     max_height_threshold = 40
 
-    for box in boxes:
+    for region, box in zip(regions, boxes):
         width = box[2] - box[0]
         height = box[3] - box[1]
         if (width / height < threshold_ratio) and (height / width < threshold_ratio) and (40 > height > 10) and (40 > width > 10):
             boxes_reduced.append(box)
-
-    return boxes_reduced
+            regions_reduced.append(region)
+            
+    region_centers = [(np.mean(region[:, 1]), np.mean(region[:, 0])) for region in regions_reduced]
+    
+    if return_boxes and return_centers:
+        return region_centers, boxes_reduced
+    
+    if return_centers:
+        return region_centers
+    
+    if return_boxes:
+        return boxes_reduced

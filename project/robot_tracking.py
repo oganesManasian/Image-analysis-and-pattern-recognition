@@ -1,5 +1,6 @@
 import numpy as np
 
+from skimage.morphology import binary_closing, disk
 from skimage.filters import gaussian
 
 from region_growing import region_growing
@@ -113,7 +114,7 @@ def frame_differencing(frames, blur_sigma=1, change_threshold=0.5):
 
     return robot_locations
 
-def get_red_objects(frames, red_threshold=128, green_threshold=128, blue_threshold=128):
+def get_red_objects(frames, red_threshold=100, green_threshold=100, blue_threshold=100):
     """
         Get objects that are red over all frames. The red color is defined by thresholding 
         RGB channels.
@@ -155,15 +156,17 @@ def get_bounding_boxes(frames):
     """
     
     frames_red = get_red_objects(frames)
-    frames_red_regions = [region_growing(frame_red) for frame_red in frames_red]
+    frames_red_cleaned = [binary_closing(frame_red, selem=disk(2)) for frame_red in frames_red]
+    frames_red_regions = [region_growing(frame_red) for frame_red in frames_red_cleaned]
     arrows = [np.array(max(red_regions, key=len)) for red_regions in frames_red_regions]
-    arrow_boxes = [[max(min(region[:, 1]), 0),  # also take into account image boundaries
-                   max(min(region[:, 0]), 0),
-                   min(max(region[:, 1]), image.shape[1]),
-                   min(max(region[:, 0]), image.shape[0])] for arrow in arrows]
+    
+    image_height, image_width = frames[0].shape[1], frames[1].shape[0] # also take into account image boundaries
+    arrow_boxes = [[max(min(arrow[:, 1]), 0),
+                   max(min(arrow[:, 0]), 0),
+                   min(max(arrow[:, 1]), image_height),
+                   min(max(arrow[:, 0]), image_width)] for arrow in arrows]
     
     return arrow_boxes
-
 
 def get_center(image, threshold):
     """
@@ -176,7 +179,6 @@ def get_center(image, threshold):
     if len(X) == 0:
         return None
     return np.mean(X), np.mean(Y)
-
 
 def postprocess_locations(robot_locations):
     """
