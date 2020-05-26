@@ -7,7 +7,7 @@ from skimage.color import rgb2gray
 from region_growing import region_growing
 
 
-def extract_objects(image, method='otsu', return_boxes=True, return_centers=True):
+def extract_objects(image, method='otsu', fill_by='binary_closing', return_boxes=True, return_centers=True):
     """
         Get extracted objects (operators and digits) from the image. 
         You can use different methods to do that. 'canny' method which uses 
@@ -25,8 +25,7 @@ def extract_objects(image, method='otsu', return_boxes=True, return_centers=True
             The frame image
         method : str
             Could be either 'canny', 'manual_threshold' or 'otsu'
-        objects_shape : tuple of int
-            The shape of output object images
+        fill_by : 'binary_closing' or 'binary_dilation'
             
         Returns
         -------
@@ -48,18 +47,16 @@ def extract_objects(image, method='otsu', return_boxes=True, return_centers=True
     else:
         raise NotImplementedError
 
-    fill_by = 'binary_closing'  # or 'binary_dilation'
-
     if fill_by == 'binary_closing':
         # Fill object regions
-        square_size = [2, 5, 10]
+        square_size = [2, 5, 7, 10, 12]
         mask_similarity_threshold = 0.999
 
         shapes_mask = binary_closing(object_regions, selem=disk(square_size[0]))
         for size in square_size[1:]:
             new_shapes_mask = binary_closing(object_regions, selem=disk(size))
             if np.sum(new_shapes_mask == shapes_mask) / shapes_mask.size > mask_similarity_threshold:
-                print(f"Chose size {size}")
+                print(f"Chosen size {size}")
                 break
             shapes_mask = new_shapes_mask
 
@@ -75,11 +72,11 @@ def extract_objects(image, method='otsu', return_boxes=True, return_centers=True
     regions = region_growing(shapes_mask)
     regions = [np.array(region) for region in regions]
 
-    # Get rid off the arrow - biggest region
+    # Get rid off the arrow - biggest region # TODO do we need this?
     len_arrow_region = len(max(regions, key=len))
     regions = [region for region in regions if len(region) < len_arrow_region]
 
-    if fill_by == 'binary_closing':
+    if fill_by == 'binary_closing':  # TODO make paddings larger
         # Adding pads on the edges
         pad = 2
     elif fill_by == 'binary_dilation':
@@ -99,14 +96,16 @@ def extract_objects(image, method='otsu', return_boxes=True, return_centers=True
     boxes_reduced = []
     regions_reduced = []
     threshold_ratio = 5
-    min_height_threshold = 10
-    max_height_threshold = 40
+    min_size_threshold = 10
+    max_size_threshold = 40
 
     for region, box in zip(regions, boxes):
         width = box[2] - box[0]
         height = box[3] - box[1]
-        if (width / height < threshold_ratio) and (height / width < threshold_ratio) \
-                and (40 > height > 10) and (40 > width > 10):
+        if (width / height < threshold_ratio) \
+                and (height / width < threshold_ratio) \
+                and (max_size_threshold > height > min_size_threshold) \
+                and (max_size_threshold > width > min_size_threshold):
             boxes_reduced.append(box)
             regions_reduced.append(region)
 

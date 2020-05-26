@@ -1,3 +1,5 @@
+import argparse
+
 from video import read_video, annotate_frames, frames2video
 from robot_tracking import get_robot_locations
 from object_detection import extract_objects
@@ -6,15 +8,23 @@ from draw import draw
 from classification import CNNClassifier, FourierClasssifier
 from utils import box2image, postprocess_predicted_sequence
 
-VIDEO_FILENAME = "robot_parcours_1.avi"
-OUTPUT_VIDEO_FILENAME = "output.avi"
 
 # ROBOT_TRACKING_METHOD = "red_channel_tracking"  # "frame_differencing"
 
+def parse_arguments():
+    parser = argparse.ArgumentParser("Testing project")
+    parser.add_argument('--input', default="video files/robot_parcours_1.avi", type=str,
+                        help='Path to the input video file')
+    parser.add_argument('--output', default="video files/output.avi", type=str,
+                        help='Path where to save output video file')
 
-def main():
+    args = parser.parse_args()
+    return args
+
+
+def main(args):
     # Reading video
-    frames = read_video(VIDEO_FILENAME)
+    frames = read_video(args.input)
     print(f"Read video with {len(frames)} frames")
 
     # Extracting trajectory
@@ -64,9 +74,11 @@ def main():
 
     # Create output video
     annotated_frames = annotate_frames(frames, seq, expression_result)
-    frames2video(annotated_frames, OUTPUT_VIDEO_FILENAME)
+    assert len(frames) == len(annotated_frames)
+    frames2video(annotated_frames, args.output)
     print("Output video created!")
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_arguments()
+    main(args)

@@ -2,14 +2,15 @@ from torchvision import transforms
 import torch
 from random import randint
 from torch.utils.data.sampler import SubsetRandomSampler
+import numpy as np
+
 
 def get_stats(dataset):
-    loader = torch.utils.data.DataLoader(dataset, batch_size=50,
-                                             shuffle=False, num_workers=2)
+    loader = torch.utils.data.DataLoader(dataset, batch_size=50, shuffle=False, num_workers=2)
     mean = 0.
     std = 0.
     for images, _ in loader:
-        batch_samples = images.size(0) # batch size (the last batch can have smaller size!)
+        batch_samples = images.size(0)  # batch size (the last batch can have smaller size!)
         images = images.view(batch_samples, images.size(1), -1)
         mean += images.mean(2).sum(0)
         std += images.std(2).sum(0)
@@ -18,6 +19,7 @@ def get_stats(dataset):
     std /= len(loader.dataset)
 
     return mean.item(), std.item()
+
 
 def get_loaders(dataset, batch_size=100, validation_split=0.2, shuffle_dataset=True):
     # Creating data indices for training and validation splits:
@@ -57,6 +59,7 @@ class NormalizedDataset:
     @property
     def classes(self):
         return self.dataset.classes
+
 
 class IncompleteDataset:
 
