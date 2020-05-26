@@ -4,7 +4,6 @@ from random import randint
 from torch.utils.data.sampler import SubsetRandomSampler
 import numpy as np
 
-
 def get_stats(dataset):
     loader = torch.utils.data.DataLoader(dataset, batch_size=50, shuffle=False, num_workers=2)
     mean = 0.
