@@ -11,10 +11,10 @@ def get_robot_locations(frames, method="auto", return_centers=True, return_boxes
         Get robot location at each frame. The first possible method is
         'frame_differencing' which subtracts adjacent frames in order to
         detect robot movements. The second possible method is 'red_channel_tracking'
-        which uses the information that robot arrow is red. 'auto' method uses both 
+        which uses the information that robot arrow is red. 'auto' method uses both
         and then chooses the smoothest one. You can return centers of
         robot locations, bounding boxes of robot location or both.
-        
+
         Parameters
         ----------
         frames : list of 2D arrays
@@ -25,7 +25,7 @@ def get_robot_locations(frames, method="auto", return_centers=True, return_boxes
             True if return centers of robot locations, False if not
         return_boxes : bool
             True if return bounding boxes of robot locations, False if not
-            
+
         Returns
         -------
         list or (list, list)
@@ -48,7 +48,7 @@ def get_robot_locations(frames, method="auto", return_centers=True, return_boxes
             raise NotImplementedError
 
         if not return_boxes:
-            return return_centers
+            return robot_locations
 
     if return_boxes:
         robot_boxes = get_bounding_boxes(frames)
@@ -62,12 +62,12 @@ def get_robot_locations(frames, method="auto", return_centers=True, return_boxes
 def red_channel_tracking(frames):
     """
         Get centers of the red objects (arrow) over all frames.
-        
+
         Parameters
         ----------
         frames : list of 2D arrays
             The list containing all video frames
-            
+
         Returns
         -------
         robot_locations : list
@@ -85,7 +85,7 @@ def frame_differencing(frames, blur_sigma=1, change_threshold=0.5):
         Get robot center locations in all frames by subtracting adjacent frames
         and detecting the robot movement. To erase the possible noise we apply
         gaussian filter with 'blur_sigma' parameter.
-        
+
         Parameters
         ----------
         frames : list of 2D arrays
@@ -94,7 +94,7 @@ def frame_differencing(frames, blur_sigma=1, change_threshold=0.5):
             The sigma in the gaussian filter
         change_threshold : float
             The threshold for calculating center of robot.
-            
+
         Returns
         -------
         list
@@ -119,9 +119,9 @@ def frame_differencing(frames, blur_sigma=1, change_threshold=0.5):
 
 def get_red_objects(frames, red_threshold=100, green_threshold=100, blue_threshold=100):
     """
-        Get objects that are red over all frames. The red color is defined by thresholding 
+        Get objects that are red over all frames. The red color is defined by thresholding
         RGB channels.
-        
+
         Parameters
         ----------
         frames : list of 2D arrays
@@ -132,7 +132,7 @@ def get_red_objects(frames, red_threshold=100, green_threshold=100, blue_thresho
             The threshold for green channel (by default < 128)
         blue_threshold : float
             The threshold for blue channel (by default < 128)
-            
+
         Returns
         -------
         list
@@ -147,12 +147,12 @@ def get_red_objects(frames, red_threshold=100, green_threshold=100, blue_thresho
 def get_bounding_boxes(frames):
     """
         Get bounding boxes coordianates of the arrow.
-        
+
         Parameters
         ----------
         frames : list of 2D arrays
             The list containing all video frames
-            
+
         Returns
         -------
         arrow_boxes : tuple of 4 numbers

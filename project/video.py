@@ -2,7 +2,7 @@ import cv2
 from PIL import ImageDraw, ImageFont, Image
 import numpy as np
 import os
-
+from robot_tracking import get_robot_locations
 
 def read_video(filepath):
     frames = []
@@ -23,10 +23,11 @@ def read_video(filepath):
     return frames
 
 
-def annotate_frames(frames, seq, expression_result):
+def annotate_frames(frames, seq, expression_result, trajectory):
     reversed_seq = list(reversed(seq))
     complete_expression = ""
     new_frames = []
+
     for i in range(len(frames)):
         # Adding char to expression if already detected
         if len(reversed_seq) > 0 and reversed_seq[-1][1] == i:
@@ -37,13 +38,13 @@ def annotate_frames(frames, seq, expression_result):
             complete_expression += str(expression_result)
 
         # Writing on image
-        new_frame = write_on_frame(frames[i], complete_expression)
+        new_frame = write_on_frame(frames[i], complete_expression, trajectory[:i])
         new_frames.append(new_frame)
 
     return new_frames
 
 
-def write_on_frame(frame, text):
+def write_on_frame(frame, text, line):
     img = Image.fromarray(frame)
     draw = ImageDraw.Draw(img)
 
@@ -51,6 +52,9 @@ def write_on_frame(frame, text):
     fill_color = (0, 0, 0)  # Making font black
     draw.text((img.width // 4, int(img.height * 0.85)), text,
               font=font, fill=fill_color)
+
+    red = (255, 0, 0)
+    draw.line(xy=line, width=1, fill=red)
 
     return np.array(img)
 
@@ -60,7 +64,7 @@ def frames2video(frames, filepath):
 
     out = cv2.VideoWriter(filepath,
                           cv2.VideoWriter_fourcc(*'DIVX'),
-                          5,
+                          2,
                           (width, height))
 
     for i in range(len(frames)):

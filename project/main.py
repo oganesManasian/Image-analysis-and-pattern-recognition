@@ -22,6 +22,13 @@ def parse_arguments():
     return args
 
 
+import pickle
+
+def save(obj, name):
+    with open('{}.pickle'.format(name), 'wb') as handle:
+        pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
 def main(args):
     # Reading video
     frames = read_video(args.input)
@@ -44,19 +51,20 @@ def main(args):
 
     # Passed objects classification
     digits = passed_objects[::2]
-    # classifier_digit = CNNClassifier(data_type="digits")
-    # predictions_digit = [(classifier_digit.predict(image), frame_ind) for (image, frame_ind) in digits]
+    save(digits, "digits")
+    classifier_digit = CNNClassifier(data_type="digits")
+    predictions_digit = [(classifier_digit.predict(image), frame_ind) for (image, frame_ind) in digits]
     # TODO delete
-    predictions_digit = [(digit, frame_ind)
-                         for digit, (image, frame_ind) in zip(['1', '2', '3', '4'], digits)]
+    # predictions_digit = [(digit, frame_ind)
+    #                      for digit, (image, frame_ind) in zip(['1', '2', '3', '4'], digits)]
     print("Digit predictions", predictions_digit)
 
     operators = passed_objects[1::2]
-    # classifier_operator = CNNClassifier(data_type="operators")
-    # predictions_operator = [(classifier_operator.predict(image), frame_ind) for (image, frame_ind) in operators]
+    classifier_operator = CNNClassifier(data_type="operators")
+    predictions_operator = [(classifier_operator.predict(image), frame_ind) for (image, frame_ind) in operators]
     # TODO delete
-    predictions_operator = [(operator, frame_ind)
-                            for operator, (image, frame_ind) in zip(['/', '+', '*', '='], operators)]
+    # predictions_operator = [(operator, frame_ind)
+                            # for operator, (image, frame_ind) in zip(['/', '+', '*', '='], operators)]
     print("Operator predictions", predictions_operator)
 
     predicted_seq = [None] * (len(predictions_digit) + len(predictions_operator))
@@ -73,7 +81,7 @@ def main(args):
     print(f"Expression evaluation:\n{expression}{expression_result}")
 
     # Create output video
-    annotated_frames = annotate_frames(frames, seq, expression_result)
+    annotated_frames = annotate_frames(frames, seq, expression_result, robot_trajectory)
     assert len(frames) == len(annotated_frames)
     frames2video(annotated_frames, args.output)
     print("Output video created!")
