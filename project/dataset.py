@@ -60,6 +60,23 @@ class NormalizedDataset:
         return self.dataset.classes
 
 
+class MinstWrapper:
+
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    def __getitem__(self, index):
+        tensor, class_ = self.dataset[index]
+        return tensor, 6 if class_ == 9 else class_
+
+    def __len__(self):
+        return len(self.dataset)
+
+    @property
+    def classes(self):
+        return self.dataset.classes[:-1]
+
+
 class IncompleteDataset:
 
     def __init__(self, dataset, all_classes, mean, std):
