@@ -1,12 +1,14 @@
 import cv2
 from PIL import ImageDraw, ImageFont, Image
 import numpy as np
+import os
 
 
-def read_video(filename):
+def read_video(filepath):
     frames = []
 
-    cap = cv2.VideoCapture(filename)
+    assert os.path.isfile(filepath) and "Can't find input filename"
+    cap = cv2.VideoCapture(filepath)
 
     while True:
         ret, frame = cap.read()
@@ -17,6 +19,7 @@ def read_video(filename):
 
     cap.release()
 
+    assert frames and "Empty frames list"
     return frames
 
 
@@ -52,11 +55,14 @@ def write_on_frame(frame, text):
     return np.array(img)
 
 
-def frames2video(frames, filename):
+def frames2video(frames, filepath):
     height, width, layers = frames[0].shape
 
-    out = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'DIVX'), 5, (width, height))
+    out = cv2.VideoWriter(filepath,
+                          cv2.VideoWriter_fourcc(*'DIVX'),
+                          5,
+                          (width, height))
 
     for i in range(len(frames)):
-        out.write(frames[i])
+        out.write(cv2.cvtColor(frames[i], cv2.COLOR_BGR2RGB))
     out.release()
