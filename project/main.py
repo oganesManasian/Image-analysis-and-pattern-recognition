@@ -52,7 +52,7 @@ def main(args):
     # Passed objects classification
     digits = passed_objects[::2]
     save(digits, "digits")
-    classifier_digit = CNNClassifier(data_type="digits")
+    classifier_digit = CNNClassifier(data_type="digits", minst_binary=False, with_median_filter=True)
     predictions_digit = [(classifier_digit.predict(image), frame_ind) for (image, frame_ind) in digits]
     # TODO delete
     # predictions_digit = [(digit, frame_ind)
