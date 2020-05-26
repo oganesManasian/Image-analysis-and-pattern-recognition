@@ -10,7 +10,9 @@ from skimage.filters import median
 binary_image = False
 
 operators_mean, operators_std = 0.2031257599592209, 0.279224157333374
-minst_mean, minst_std = 0.09182075411081314, 0.195708230137825
+minst_mean, minst_std = 0.1592080444097519, 0.2912784218788147
+minst_mean_binary, minst_std_binary = .813676118850708, 0.38431620597839355
+# 0.09182075411081314, 0.195708230137825
 
 def inverse_color(img):
     return PIL.Image.eval(img, lambda val: 255 - val)
@@ -40,6 +42,8 @@ class Conv_Net(nn.Module):
         self.fc1 = nn.Linear(nb_conv3, nb_hidden)  # the first fully-connected layer, which gets flattened max-pooled set
         self.fc2 = nn.Linear(nb_hidden, nb_out)  # the second fully-connected layer that outputs the result
 
+        self.dropout = nn.Dropout(p=0.3)
+
     # Creating the forward pass
     def forward(self, x):
 
@@ -57,7 +61,7 @@ class Conv_Net(nn.Module):
         # The first fully-connected layer
         x = F.relu(self.fc1(x))
 
-        x = nn.Dropout(p=0.3)(x)
+        x = self.dropout(x)
 
         # The second full-connected layer
         x = self.fc2(x)
@@ -71,9 +75,10 @@ class BaseClassifier:
 
 
 class CNNClassifier(BaseClassifier):
-    def __init__(self, data_type, path="", minst_binary=True):
+    def __init__(self, data_type, path="", minst_binary=True, with_median_filter=False):
         self.data_type = data_type
         self.minst_binary = minst_binary
+        self.with_median_filter = with_median_filter
 
         # Load weights
         if self.data_type == "digits":
@@ -87,12 +92,16 @@ class CNNClassifier(BaseClassifier):
             self.model.load_state_dict(torch.load(path+"operator_model"))
             self.model.eval()
         else:
-            pass
-            # raise ValueError
+            raise ValueError
 
     def get_transforms(self, binary=False):
         side = 28 if self.data_type == "digits" else 25
-        mean, std = (minst_mean, minst_std) if self.data_type == "digits" else (operators_mean, operators_std)
+
+        if self.data_type == "digits":
+
+            mean, std = (minst_mean_binary, minst_std_binary) if self.minst_binary else (minst_mean, minst_std)
+        else:
+            mean, std = (operators_mean, operators_std)
 
         all_transforms = [
             transforms.Grayscale(num_output_channels=1),
@@ -104,7 +113,8 @@ class CNNClassifier(BaseClassifier):
         if binary:
             all_transforms.append(transforms.Lambda(to_binary))
 
-        # all_transforms.append(transforms.Lambda(median_filter))
+        if self.with_median_filter:
+            all_transforms.append(transforms.Lambda(median_filter))
 
         all_transforms.extend([
             transforms.ToTensor(),
@@ -121,12 +131,7 @@ class CNNClassifier(BaseClassifier):
         binary = self.data_type == "digits" and self.minst_binary
         tensor = transforms.Compose(self.get_transforms(binary))(pil_img).unsqueeze(dim=0)
 
-        res = []
-        for i in range(500):
-            res.append(self.model(tensor).argmax().item())
-        counter = collections.Counter(res)
-        print(counter)
-        class_ = max(counter, key=lambda x: counter[x])
+        class_ = self.model(tensor).argmax().item()
 
         if self.data_type == "digits":
             return str(class_)
