@@ -5,6 +5,7 @@ from torchvision import transforms
 import PIL
 import numpy as np
 import collections
+from skimage.filters import median
 
 binary_image = False
 
@@ -21,6 +22,9 @@ def remove_background(img):
 
 def to_binary(img):
     return PIL.Image.eval(img, lambda val: 255 if val < (256 / 2) else 0)
+
+def median_filter(img):
+    return PIL.Image.fromarray(median(np.array(img)))
 
 # from keras.regularizers import L1L2
 # from keras.layers import Conv2D
@@ -47,7 +51,6 @@ class Conv_Net(nn.Module):
 
         x = F.relu(F.max_pool2d(self.conv3(x), kernel_size=2))
 
-
         # Flattening the data set for fully-connected layer
         x = x.view(x.size(0), -1)
 
@@ -68,18 +71,20 @@ class BaseClassifier:
 
 
 class CNNClassifier(BaseClassifier):
-    def __init__(self, data_type):
+    def __init__(self, data_type, path="", minst_binary=True):
         self.data_type = data_type
+        self.minst_binary = minst_binary
 
         # Load weights
         if self.data_type == "digits":
             # Build model
             self.model = Conv_Net(nb_hidden=100, nb_conv3=128, nb_out=10)
-            self.model.load_state_dict(torch.load("digit_model_binary"))
+            name = "digit_model_binary" if minst_binary else "digit_model"
+            self.model.load_state_dict(torch.load(path+name))
             self.model.eval()
         elif self.data_type == "operators":
             self.model = Conv_Net(nb_hidden=25, nb_conv3=64, nb_out=5)
-            self.model.load_state_dict(torch.load("operator_model"))
+            self.model.load_state_dict(torch.load(path+"operator_model"))
             self.model.eval()
         else:
             pass
@@ -99,6 +104,8 @@ class CNNClassifier(BaseClassifier):
         if binary:
             all_transforms.append(transforms.Lambda(to_binary))
 
+        # all_transforms.append(transforms.Lambda(median_filter))
+
         all_transforms.extend([
             transforms.ToTensor(),
             transforms.Normalize((mean, ), (std, ))
@@ -111,13 +118,14 @@ class CNNClassifier(BaseClassifier):
 
         pil_img = PIL.Image.fromarray((image * 255).astype(np.uint8))
         # pil_img.show()
-        binary = self.data_type == "digits"
+        binary = self.data_type == "digits" and self.minst_binary
         tensor = transforms.Compose(self.get_transforms(binary))(pil_img).unsqueeze(dim=0)
 
         res = []
         for i in range(500):
             res.append(self.model(tensor).argmax().item())
         counter = collections.Counter(res)
+        print(counter)
         class_ = max(counter, key=lambda x: counter[x])
 
         if self.data_type == "digits":
