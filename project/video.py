@@ -4,6 +4,7 @@ import numpy as np
 import os
 from robot_tracking import get_robot_locations
 
+
 def read_video(filepath):
     frames = []
 

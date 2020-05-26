@@ -1,65 +1,46 @@
 import torch
+from skimage.color import rgb2gray
+from skimage.filters import threshold_otsu
 from torch import nn
-from torch.nn import functional as F
 from torchvision import transforms
-import PIL
+from PIL import Image
 import numpy as np
-import collections
+from collections import defaultdict
+import matplotlib.pyplot as plt
 
-binary_image = False
+from cnn.dataset_creation import MEAN_DIGITS, STD_DIGITS
 
-operators_mean, operators_std = 0.2031257599592209, 0.279224157333374
-minst_mean, minst_std = 0.09182075411081314, 0.195708230137825
-
-def inverse_color(img):
-    return PIL.Image.eval(img, lambda val: 255 - val)
+CNN_PATH = "cnn"
 
 
-def remove_background(img):
-    return PIL.Image.eval(img, lambda val: 0 if val < (256 / 2) else val)
-
-
-def to_binary(img):
-    return PIL.Image.eval(img, lambda val: 255 if val < (256 / 2) else 0)
-
-# from keras.regularizers import L1L2
-# from keras.layers import Conv2D
-# Creating a Net class object, which consists of 2 convolutional layers, max-pool layers and fully-connected layers
 class Conv_Net(nn.Module):
 
-    def __init__(self, nb_hidden=100, nb_conv3=128, nb_out=10):
+    def __init__(self, nb_classes, nb_hidden=50):
         super(Conv_Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=3)  # the first convolutional layer, which processes the input image
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3)  # the second convolutional layer, which gets the max-pooled set
-        self.conv3 = nn.Conv2d(32, nb_conv3, kernel_size=3)  # the second convolutional layer, which gets the max-pooled set
-
-        self.fc1 = nn.Linear(nb_conv3, nb_hidden)  # the first fully-connected layer, which gets flattened max-pooled set
-        self.fc2 = nn.Linear(nb_hidden, nb_out)  # the second fully-connected layer that outputs the result
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3)
+        self.fc1 = nn.Linear(1600, nb_hidden)
+        self.fc2 = nn.Linear(nb_hidden, nb_classes)
+        self.relu = torch.nn.ReLU()
+        self.pool = torch.nn.MaxPool2d(kernel_size=2)
+        self.softmax = torch.nn.Softmax(dim=1)
 
     # Creating the forward pass
     def forward(self, x):
-
-        # The first two layers
-        x = F.relu(F.max_pool2d(self.conv1(x), kernel_size=2))
-
-        # The second two layers
-        x = F.relu(F.max_pool2d(self.conv2(x), kernel_size=2))
-
-        x = F.relu(F.max_pool2d(self.conv3(x), kernel_size=2))
-
-
-        # Flattening the data set for fully-connected layer
+        x = self.relu(self.pool(self.conv1(x)))
+        x = self.relu(self.pool(self.conv2(x)))
         x = x.view(x.size(0), -1)
-
-        # The first fully-connected layer
-        x = F.relu(self.fc1(x))
-
-        x = nn.Dropout(p=0.3)(x)
-
-        # The second full-connected layer
+        x = self.relu(self.fc1(x))
         x = self.fc2(x)
 
         return x
+
+    def predict(self, input):
+        output = self.softmax(self.forward(input))
+        # predicted = torch.argmax(output, dim=1)
+        confidence, predicted = torch.max(output, dim=1)
+
+        return predicted, confidence
 
 
 class BaseClassifier:
@@ -68,63 +49,67 @@ class BaseClassifier:
 
 
 class CNNClassifier(BaseClassifier):
-    def __init__(self, data_type):
-        self.data_type = data_type
-
+    def __init__(self):
+        # Build model
+        self.model = Conv_Net(nb_classes=10)
         # Load weights
-        if self.data_type == "digits":
-            # Build model
-            self.model = Conv_Net(nb_hidden=100, nb_conv3=128, nb_out=10)
-            self.model.load_state_dict(torch.load("digit_model_binary"))
-            self.model.eval()
-        elif self.data_type == "operators":
-            self.model = Conv_Net(nb_hidden=25, nb_conv3=64, nb_out=5)
-            self.model.load_state_dict(torch.load("operator_model"))
-            self.model.eval()
-        else:
-            pass
-            # raise ValueError
-
-    def get_transforms(self, binary=False):
-        side = 28 if self.data_type == "digits" else 25
-        mean, std = (minst_mean, minst_std) if self.data_type == "digits" else (operators_mean, operators_std)
-
-        all_transforms = [
-            transforms.Grayscale(num_output_channels=1),
-            transforms.Lambda(remove_background),
-            transforms.CenterCrop(side),
-            # transforms.Resize((side, side)),
-        ]
-
-        if binary:
-            all_transforms.append(transforms.Lambda(to_binary))
-
-        all_transforms.extend([
-            transforms.ToTensor(),
-            transforms.Normalize((mean, ), (std, ))
-        ])
-
-        return all_transforms
-
+        self.model.load_state_dict(torch.load(f"{CNN_PATH}/cnn_model.pth"))
+        # self.model.eval()
 
     def predict(self, image):
+        """
 
-        pil_img = PIL.Image.fromarray((image * 255).astype(np.uint8))
-        # pil_img.show()
-        binary = self.data_type == "digits"
-        tensor = transforms.Compose(self.get_transforms(binary))(pil_img).unsqueeze(dim=0)
+        :param image: Image to classify as numpy array
+        :return: predicted label
+        """
+        image = rgb2gray(image)
+        thresh = threshold_otsu(image)
+        binary = (image > thresh).astype(float)
 
-        res = []
-        for i in range(500):
-            res.append(self.model(tensor).argmax().item())
-        counter = collections.Counter(res)
-        class_ = max(counter, key=lambda x: counter[x])
+        rotation_step = 10
+        angles = [0 + i * rotation_step for i in range(360 // rotation_step)]
 
-        if self.data_type == "digits":
-            return str(class_)
-        elif self.data_type == "operators":
-            mapping = {0: "/", 1: "=", 2: "-", 3: "*", 4: "+"}
-            return mapping[class_]
+        predictions = []
+        for angle in angles:
+            image_rotated = Image.fromarray((binary * 255).astype(np.uint8)) \
+                .rotate(angle, fillcolor=(255))
+            # plt.imshow(image_rotated)
+            # plt.show()
+
+            preprocess = transforms.Compose([
+                # transforms.Grayscale(num_output_channels=1),
+                # transforms.Lambda(inverse_color),
+                # transforms.Lambda(to_binary),
+                transforms.ToTensor(),
+                # transforms.Normalize((MEAN_DIGITS,), (STD_DIGITS,)),
+            ])
+            image_to_classify = preprocess(image_rotated)
+
+            # plt.imshow(image_to_classify.reshape(28, 28), cmap="gray")
+            # plt.show()
+
+            pred, conf = self.model.predict(image_to_classify.unsqueeze(0))
+            predictions.append([pred.item(), conf.item(), angle])
+            # print(f"Angle {angle}, pred: {pred.item()}, conf {conf.item()}")
+
+        predictions = np.array(predictions)
+        highest_conf_ind = np.argmax(predictions[:, 1])
+        print(f"Prediction: {predictions[highest_conf_ind, 0]}, "
+              f"Highest conf: {predictions[highest_conf_ind, 1]}, "
+              f"at angle: {predictions[highest_conf_ind, 2]}")
+
+        # Calculates sum of probabilities of each digit among different rotations
+        # prediction_scores = defaultdict(list)
+        # for i in range(predictions.shape[0]):
+        #     prediction_scores[predictions[i, 0]].append(predictions[i, 1])
+        #
+        # prediction_scores_sum = np.array([[key, sum(prediction_scores[key])]
+        #                                   for key in prediction_scores.keys()])
+        # # print(sorted(prediction_scores_sum, key=lambda x: x[1], reverse=True))
+        # prediction, confidence = sorted(prediction_scores_sum, key=lambda x: x[1], reverse=True)[0]
+        # print(f"Prediction (sum): {prediction}, Confidence (sum): {confidence}")
+
+        return predictions[highest_conf_ind, 0]
 
 
 class FourierClasssifier(BaseClassifier):

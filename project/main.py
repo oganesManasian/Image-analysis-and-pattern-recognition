@@ -1,4 +1,9 @@
 import argparse
+import os
+import shutil
+from skimage.color import rgb2gray
+from skimage.filters import threshold_otsu
+from skimage.io import imsave
 
 from video import read_video, annotate_frames, frames2video
 from robot_tracking import get_robot_locations
@@ -22,13 +27,6 @@ def parse_arguments():
     return args
 
 
-import pickle
-
-def save(obj, name):
-    with open('{}.pickle'.format(name), 'wb') as handle:
-        pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-
 def main(args):
     # Reading video
     frames = read_video(args.input)
@@ -43,6 +41,34 @@ def main(args):
     object_centers, object_boxes = extract_objects(initial_image)
     draw(initial_image, boxes=object_boxes, title="Detected objects")
 
+    create_video_dataset = True
+    if create_video_dataset:
+        video_dataset_path = "video_dataset"
+        if os.path.isdir(video_dataset_path):
+            shutil.rmtree(video_dataset_path)
+        os.mkdir(video_dataset_path)
+
+        # Save digits
+        digits_path = "digits"
+        os.mkdir(os.path.join(video_dataset_path, digits_path))
+        for i in range(10):
+            os.mkdir(os.path.join(video_dataset_path, digits_path, str(i)))
+
+        digits_ind = [29, 28, 20, 4, 6, 17]
+        labels = [3, 2, 7, 2, 3, 7]
+        boxes_to_save = [object_boxes[i] for i in digits_ind]
+        objects_to_save = [box2image(initial_image, box) for box in boxes_to_save]
+
+        for i, (image, label) in enumerate(zip(objects_to_save, labels)):
+            image = rgb2gray(image)
+            thresh = threshold_otsu(image)
+            binary = (image > thresh).astype(float)
+            imsave(os.path.join(video_dataset_path, digits_path, str(label), f"objects{i}.png"), binary)
+        print("Video dataset created.")
+
+        # Save operators
+        # TODO
+
     # Find passed objects
     passed_boxes = detect_intersections(robot_trajectory, object_boxes)
     draw(initial_image, trajectory=robot_trajectory, boxes=[box for (box, _) in passed_boxes], title="Passed objects")
@@ -51,7 +77,6 @@ def main(args):
 
     # Passed objects classification
     digits = passed_objects[::2]
-    save(digits, "digits")
     classifier_digit = CNNClassifier(data_type="digits")
     predictions_digit = [(classifier_digit.predict(image), frame_ind) for (image, frame_ind) in digits]
     # TODO delete
@@ -60,11 +85,11 @@ def main(args):
     print("Digit predictions", predictions_digit)
 
     operators = passed_objects[1::2]
-    classifier_operator = CNNClassifier(data_type="operators")
-    predictions_operator = [(classifier_operator.predict(image), frame_ind) for (image, frame_ind) in operators]
+    # classifier_operator = CNNClassifier(data_type="operators")
+    # predictions_operator = [(classifier_operator.predict(image), frame_ind) for (image, frame_ind) in operators]
     # TODO delete
-    # predictions_operator = [(operator, frame_ind)
-                            # for operator, (image, frame_ind) in zip(['/', '+', '*', '='], operators)]
+    predictions_operator = [(operator, frame_ind)
+                            for operator, (image, frame_ind) in zip(['/', '+', '*', '='], operators)]
     print("Operator predictions", predictions_operator)
 
     predicted_seq = [None] * (len(predictions_digit) + len(predictions_operator))
