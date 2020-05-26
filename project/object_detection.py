@@ -6,6 +6,7 @@ from skimage.color import rgb2gray
 
 from region_growing import region_growing
 
+
 def extract_objects(image, method='otsu', return_boxes=True, return_centers=True):
     """
         Get extracted objects (operators and digits) from the image. 
@@ -32,10 +33,10 @@ def extract_objects(image, method='otsu', return_boxes=True, return_centers=True
         list or (list, list)
             The list of object centers or the object boxes or both.
     """
-    
+
     # Get grayscaled image
     grayscale = rgb2gray(image) * 255
-    
+
     if method == 'canny':
         object_regions = canny(grayscale / 255.)  # We will use popular Canny filter for edge detection
     elif method == 'otsu':
@@ -45,10 +46,10 @@ def extract_objects(image, method='otsu', return_boxes=True, return_centers=True
         thresh = 128
         object_regions = grayscale < thresh
     else:
-        NotImplementedError
+        raise NotImplementedError
 
     fill_by = 'binary_closing'  # or 'binary_dilation'
-    
+
     if fill_by == 'binary_closing':
         # Fill object regions
         square_size = [2, 5, 10]
@@ -61,27 +62,32 @@ def extract_objects(image, method='otsu', return_boxes=True, return_centers=True
                 print(f"Chose size {size}")
                 break
             shapes_mask = new_shapes_mask
+
     # This method produces bigger boxes
     elif fill_by == 'binary_dilation':
         # Manual threshold for dilation using square element
         square_size = 7
-        shapes_mask = binary_dilation(object_regions, selem=square(7))
+        shapes_mask = binary_dilation(object_regions, selem=square(square_size))
+    else:
+        raise NotImplementedError
 
     # Get object regions
     regions = region_growing(shapes_mask)
     regions = [np.array(region) for region in regions]
-    
+
     # Get rid off the arrow - biggest region
     len_arrow_region = len(max(regions, key=len))
     regions = [region for region in regions if len(region) < len_arrow_region]
-    
+
     if fill_by == 'binary_closing':
         # Adding pads on the edges
         pad = 2
     elif fill_by == 'binary_dilation':
         # Dilation already adds padding
         pad = 0
-     
+    else:
+        raise NotImplementedError
+
     # Get bounding boxes of objects
     boxes = [(max(min(region[:, 1]) - pad, 0),
               max(min(region[:, 0]) - pad, 0),
@@ -99,17 +105,18 @@ def extract_objects(image, method='otsu', return_boxes=True, return_centers=True
     for region, box in zip(regions, boxes):
         width = box[2] - box[0]
         height = box[3] - box[1]
-        if (width / height < threshold_ratio) and (height / width < threshold_ratio) and (40 > height > 10) and (40 > width > 10):
+        if (width / height < threshold_ratio) and (height / width < threshold_ratio) \
+                and (40 > height > 10) and (40 > width > 10):
             boxes_reduced.append(box)
             regions_reduced.append(region)
-            
+
     region_centers = [(np.mean(region[:, 1]), np.mean(region[:, 0])) for region in regions_reduced]
-    
+
     if return_boxes and return_centers:
         return region_centers, boxes_reduced
-    
+
     if return_centers:
         return region_centers
-    
+
     if return_boxes:
         return boxes_reduced

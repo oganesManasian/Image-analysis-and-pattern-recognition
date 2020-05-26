@@ -5,6 +5,7 @@ from skimage.filters import gaussian
 
 from region_growing import region_growing
 
+
 def get_robot_locations(frames, method="auto", return_centers=True, return_boxes=True):
     """
         Get robot location at each frame. The first possible method is
@@ -30,7 +31,7 @@ def get_robot_locations(frames, method="auto", return_centers=True, return_boxes
         list or (list, list)
             Either list of center coords, list of boxes coords or both.
     """
-    
+
     if return_centers:
         if method == "frame_differencing":
             robot_locations = frame_differencing(frames)
@@ -45,17 +46,18 @@ def get_robot_locations(frames, method="auto", return_centers=True, return_boxes
             robot_locations = method_results[np.argmin(method_stds)]
         else:
             raise NotImplementedError
-        
+
         if not return_boxes:
             return return_centers
-    
+
     if return_boxes:
         robot_boxes = get_bounding_boxes(frames)
-        
+
         if not return_centers:
             return robot_boxes
 
     return robot_locations, robot_boxes
+
 
 def red_channel_tracking(frames):
     """
@@ -71,7 +73,7 @@ def red_channel_tracking(frames):
         robot_locations : list
             The coordinates of robot center in all frames.
     """
-    
+
     frames_red = get_red_objects(frames)
     robot_locations = [get_center(frame, threshold=0) for frame in frames_red]
 
@@ -114,6 +116,7 @@ def frame_differencing(frames, blur_sigma=1, change_threshold=0.5):
 
     return robot_locations
 
+
 def get_red_objects(frames, red_threshold=100, green_threshold=100, blue_threshold=100):
     """
         Get objects that are red over all frames. The red color is defined by thresholding 
@@ -135,10 +138,11 @@ def get_red_objects(frames, red_threshold=100, green_threshold=100, blue_thresho
         list
             The list of masks that identify red objects.
     """
-    
-    return [(frame[:, :, 0] > red_threshold) & 
-            (frame[:, :, 1] < green_threshold) & 
+
+    return [(frame[:, :, 0] > red_threshold) &
+            (frame[:, :, 1] < green_threshold) &
             (frame[:, :, 2] < blue_threshold) for frame in frames]
+
 
 def get_bounding_boxes(frames):
     """
@@ -154,19 +158,20 @@ def get_bounding_boxes(frames):
         arrow_boxes : tuple of 4 numbers
             [xmin, ymin, xmax, ymax] coordinates of the arrow box.
     """
-    
+
     frames_red = get_red_objects(frames)
     frames_red_cleaned = [binary_closing(frame_red, selem=disk(2)) for frame_red in frames_red]
     frames_red_regions = [region_growing(frame_red) for frame_red in frames_red_cleaned]
     arrows = [np.array(max(red_regions, key=len)) for red_regions in frames_red_regions]
-    
-    image_height, image_width = frames[0].shape[1], frames[1].shape[0] # also take into account image boundaries
+
+    image_height, image_width = frames[0].shape[1], frames[1].shape[0]  # also take into account image boundaries
     arrow_boxes = [[max(min(arrow[:, 1]), 0),
-                   max(min(arrow[:, 0]), 0),
-                   min(max(arrow[:, 1]), image_height),
-                   min(max(arrow[:, 0]), image_width)] for arrow in arrows]
-    
+                    max(min(arrow[:, 0]), 0),
+                    min(max(arrow[:, 1]), image_height),
+                    min(max(arrow[:, 0]), image_width)] for arrow in arrows]
+
     return arrow_boxes
+
 
 def get_center(image, threshold):
     """
@@ -179,6 +184,7 @@ def get_center(image, threshold):
     if len(X) == 0:
         return None
     return np.mean(X), np.mean(Y)
+
 
 def postprocess_locations(robot_locations):
     """

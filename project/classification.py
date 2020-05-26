@@ -63,10 +63,10 @@ class CNNClassifier(BaseClassifier):
         if self.data_type == "digits":
             # Build model
             self.model = Conv_Net(10)
-            # self.model.load_state_dict(torch.load("digit_model"))
+            self.model.load_state_dict(torch.load("weights/digit_model"))
         elif self.data_type == "operators":
             self.model = Conv_Net(5)
-            self.model.load_state_dict(torch.load("operator_model"))
+            self.model.load_state_dict(torch.load("weights/operator_model"))
         else:
             raise ValueError
 
