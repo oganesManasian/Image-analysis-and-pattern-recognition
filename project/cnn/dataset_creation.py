@@ -38,7 +38,7 @@ def to_binary(img):
 
 
 def get_stats(dataset):
-    loader = torch.utils.data.DataLoader(dataset, batch_size=50, shuffle=False, num_workers=2)
+    loader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False, num_workers=2)
     mean = 0.
     std = 0.
     for images, _ in loader:

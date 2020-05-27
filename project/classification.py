@@ -4,6 +4,8 @@ from torch import nn
 from torchvision import transforms
 from PIL import Image
 import numpy as np
+import matplotlib.pyplot as plt
+
 from cnn.dataset_creation import inverse_color, to_binary
 
 if os.getcwd().split('\\')[-1] == "project":
@@ -51,27 +53,17 @@ class BaseClassifier:
 
 class CNNClassifier(BaseClassifier):
     def __init__(self, data_type):
+        """
+        Initializes model with pretrained weights
+        :param data_type: Type of data to work on. Either 'digits' or 'operators'
+        """
         self.data_type = data_type
         if data_type == "digits":
             nb_classes = 10
             weights_path = f"{WEIGHTS_PATH}/model_digits.pth"
-            self.preprocess_image = transforms.Compose([
-                transforms.Grayscale(num_output_channels=1),
-                transforms.Lambda(inverse_color),
-                transforms.Lambda(to_binary),
-                transforms.ToTensor(),
-                # transforms.Normalize((MEAN_DIGITS,), (STD_DIGITS,)),
-            ])
         elif data_type == "operators":
             nb_classes = 5
             weights_path = f"{WEIGHTS_PATH}/model_operators.pth"
-            self.preprocess_image = transforms.Compose([
-                transforms.Grayscale(num_output_channels=1),
-                transforms.Lambda(inverse_color),
-                transforms.Lambda(to_binary),
-                transforms.ToTensor(),
-                # transforms.Normalize((MEAN_OPERATORS,), (STD_OPERATORS,)),
-            ])
             self.prediction2label = {0: "/", 1: "=", 2: "-", 3: "*", 4: "+"}
         else:
             raise NotImplementedError
@@ -81,17 +73,24 @@ class CNNClassifier(BaseClassifier):
         # Load weights
         self.model.load_state_dict(torch.load(weights_path))
 
+        self.preprocess_image = transforms.Compose([
+            transforms.Grayscale(num_output_channels=1),
+            transforms.Lambda(inverse_color),
+            transforms.Lambda(to_binary),
+            # TODO use instead of resizing in box2image function
+            # Issue: Fills with opposite color
+            # transforms.Resize((28, 28)),
+            transforms.ToTensor(),
+            # transforms.Normalize((MEAN,), (STD,)),
+        ])
+
     def predict(self, image, return_raw_label=False, print_info=False):
         """
-
+        Predicts class with use of 36 rotations of input image
         :param image: Image to classify as numpy array
-        :return: predicted label
+        :return: predicted class as string
         """
         self.model.eval()
-
-        # image = rgb2gray(image)
-        # thresh = threshold_otsu(image)
-        # binary = (image > thresh).astype(float)
 
         rotation_step = 10
         angles = [0 + i * rotation_step for i in range(360 // rotation_step)]

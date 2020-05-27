@@ -18,6 +18,11 @@ def box2image(image, box, image_size=(28, 28)):
 
 
 def postprocess_predicted_sequence(seq):
+    """
+    Fixes some mistakes made by model using domain knowledge
+    :param seq: predicts expression
+    :return: fixed expression
+    """
     # 9s to 6s
     for i in range(len(seq)):
         pred, frame_id = seq[i]
@@ -26,12 +31,25 @@ def postprocess_predicted_sequence(seq):
 
     # Last operator have to be =
     if seq[-1][0] != '=':
-        print("Warning: equal sign")
+        print("Warning: equal sign!")
         seq[-1] = ('=', seq[-1][1])
+
+    # Substitute all equal signs at wrong position by '+'
+    for i in range(len(seq) - 1):
+        if seq[i][0] == "=":
+            print("Warning: equal sign")
+            seq[i] = ("+", seq[i][1])
     return seq
 
 
 def create_video_dataset(initial_image, object_boxes, video_dataset_path="cnn/video_dataset"):
+    """
+    Creates dataset of digits and operators from the video
+    :param initial_image:
+    :param object_boxes:
+    :param video_dataset_path: path where to save dataset
+    :return:
+    """
     if os.path.isdir(video_dataset_path):
         shutil.rmtree(video_dataset_path)
     os.mkdir(video_dataset_path)
