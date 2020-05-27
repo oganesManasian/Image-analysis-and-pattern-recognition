@@ -1,15 +1,17 @@
 import os
-import shutil
-
 import torch
 import torch.nn as nn
 import copy
 import matplotlib.pyplot as plt
+from torchvision import datasets
+from torchvision.transforms import transforms
 
-from classification import Conv_Net
+from classification import ConvNet
 from dataset_creation import get_digit_loaders, get_operator_loaders
-
 # from cross_entropy import CrossEntropyLoss
+
+from cnn.dataset_creation import generate_dataset, get_loaders, inverse_color, to_binary
+
 METRICS_FOLDER = "metrics"
 WEIGHTS_FOLDER = "weights"
 
@@ -81,17 +83,14 @@ def train(model, nb_epochs, train_loader, val_loader, test_loader, device, eval_
             val_acc.append(acc)
             print(f"val acc: {acc}")
 
-            n_rounds = 100
-            acc = 0
-            for _ in range(n_rounds):
-                acc += evaluate_model(model, test_loader, device)
-            acc /= n_rounds
+            acc = evaluate_model(model, test_loader, device)
             test_acc.append(acc)
             print(f"test acc: {acc}")
 
             if test_acc[-1] > best_accuracy:
                 best_model = copy.deepcopy(model)
                 best_accuracy = test_acc[-1]
+                print("Best model saved")
 
     return best_model, [losses, val_acc, test_acc]
 
@@ -114,16 +113,18 @@ def plot_metrics(metrics, model_name):
     plt.show()
 
 
-def generate_model(model_name, get_loaders_method, nb_classes, nb_epochs=5):
+def generate_model(model_name, train_loader, val_loader, test_loader, nb_classes, nb_epochs=5):
     print(f"Training {model_name} model")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("Using", device)
 
-    train_loader, val_loader, test_loader = get_loaders_method(video_dataset_dir="video_dataset")
+    if not test_loader:
+        test_loader = val_loader
+
     print(f"Loaded {len(train_loader)} train batches, {len(val_loader)} val batches, {len(test_loader)} test batches")
 
-    model = Conv_Net(nb_classes=nb_classes).to(device)
+    model = ConvNet(nb_classes=nb_classes).to(device)
     model, metrics = train(model, nb_epochs, train_loader, val_loader, test_loader, device)
     plot_metrics(metrics, model_name)
     torch.save(model.state_dict(), f"{WEIGHTS_FOLDER}/model_{model_name}.pth")
@@ -135,5 +136,41 @@ if __name__ == "__main__":
     if not os.path.isdir(METRICS_FOLDER):
         os.mkdir(METRICS_FOLDER)
 
-    generate_model("digits", get_digit_loaders, 10, nb_epochs=5)
-    generate_model("operators", get_operator_loaders, 5, nb_epochs=50)
+    # Training using dataloaders
+    # train_loader, val_loader, test_loader = get_digit_loaders()
+    # generate_model("digits", train_loader, val_loader, test_loader, 10, nb_epochs=5)
+    # train_loader, val_loader, test_loader = get_operator_loaders()
+    # generate_model("operators", get_operator_loaders, 5, nb_epochs=30)
+
+    # Training using stored data (more convenient since we can first generate large dataset and then train on it)
+    # Train digits model
+    generate_dataset(data_type="digits",
+                     nb_samples=1024,
+                     use_only_video_dataset=False)
+    preprocess_image = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),
+        transforms.Lambda(inverse_color),
+        transforms.Lambda(to_binary),
+        transforms.ToTensor(),
+        # transforms.Normalize((MEAN_DIGITS,), (STD_DIGITS,)),
+    ])
+    dataset = datasets.ImageFolder(root="generated_dataset/digits",
+                                   transform=preprocess_image)
+    train_loader, val_loader = get_loaders(dataset, batch_size=32)
+    generate_model("digits", train_loader, val_loader, None, 5, nb_epochs=5)
+
+    # Train operators model
+    generate_dataset(data_type="operators",
+                     nb_samples=1024,
+                     use_only_video_dataset=False)
+    preprocess_image = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),
+        transforms.Lambda(inverse_color),
+        transforms.Lambda(to_binary),
+        transforms.ToTensor(),
+        # transforms.Normalize((MEAN_OPERATORS,), (STD_OPERATORS,)),
+    ])
+    dataset = datasets.ImageFolder(root="generated_dataset/operators",
+                                   transform=preprocess_image)
+    train_loader, val_loader = get_loaders(dataset, batch_size=32)
+    generate_model("operators", train_loader, val_loader, None, 5, nb_epochs=5)

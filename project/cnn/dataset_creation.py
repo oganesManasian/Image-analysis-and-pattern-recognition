@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torchvision import transforms, datasets
@@ -70,10 +69,15 @@ def get_loaders(dataset, batch_size, validation_split=0.2, shuffle_dataset=True)
 
     train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                sampler=train_sampler)
-    validation_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
-                                                    sampler=valid_sampler)
+    if validation_split > 0:
+        valid_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+                                                   sampler=valid_sampler)
+    else:
+        # Use same data (works since we have random rotations)
+        valid_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+                                                   sampler=train_sampler)
 
-    return train_loader, validation_loader
+    return train_loader, valid_loader
 
 
 def get_digit_loaders(batch_size=64, train_rotation=5, test_rotation=5):
@@ -109,7 +113,7 @@ def get_digit_loaders(batch_size=64, train_rotation=5, test_rotation=5):
     return train_loader, val_loader, test_loader
 
 
-def get_operator_loaders(batch_size=64, train_rotation=5, test_rotation=5):
+def get_operator_loaders(batch_size=1, train_rotation=5, test_rotation=5):
     common_transforms = [
         transforms.Lambda(to_binary),
         transforms.ToTensor(),
@@ -121,7 +125,7 @@ def get_operator_loaders(batch_size=64, train_rotation=5, test_rotation=5):
     github_transform = transforms.Compose([
         transforms.Grayscale(num_output_channels=1),
         transforms.Lambda(inverse_color),
-        transforms.Resize((28, 28)),
+        # transforms.Resize((28, 28)),
         transforms.RandomRotation(train_rotation, fill=(BLACK,)),
         common_transform
     ])
@@ -129,7 +133,7 @@ def get_operator_loaders(batch_size=64, train_rotation=5, test_rotation=5):
     operators_dataset = datasets.ImageFolder(root='operators', transform=github_transform)
     operators_mean, operators_std = get_stats(operators_dataset)
     print(f"Operator's dataset mean {operators_mean}, std {operators_std}")
-    train_loader, val_loader = get_loaders(operators_dataset, batch_size=batch_size)
+    train_loader, val_loader = get_loaders(operators_dataset, batch_size=batch_size, validation_split=0)
 
     # Creating dataset with images from video dataset
     videodataset_transforms = transforms.Compose([
@@ -198,6 +202,38 @@ def generate_dataset(data_type, nb_samples=100, use_only_video_dataset=False, tr
     print(f"{data_type} dataset created")
 
 
+def preprocess_github_images(path_to_raw_data="operators github", path_to_save="operators"):
+    # Prepare directory
+    if os.path.isdir(path_to_save):
+        shutil.rmtree(path_to_save)
+    os.mkdir(path_to_save)
+    folders_to_create = ["divide", "equal", "minus", "multiply", "plus"]
+    for folder in folders_to_create:
+        os.mkdir(os.path.join(path_to_save, folder))
+
+    # Preprocess data
+    preprocess_steps = transforms.Compose([
+        transforms.Resize((100, 100)),
+        transforms.Pad((20, 20), fill=(WHITE, WHITE, WHITE)),
+        transforms.Resize((28, 28)),
+        transforms.Grayscale(num_output_channels=1),
+        transforms.Lambda(inverse_color),
+        transforms.Lambda(to_binary),
+        transforms.ToTensor()
+    ])
+    data = datasets.ImageFolder(root=path_to_raw_data, transform=preprocess_steps)
+    loader = DataLoader(data, batch_size=1)
+
+    class_ind2label = {key: value for key, value in enumerate(folders_to_create)}
+
+    # Save data
+    for (img, label) in loader:
+        # imsave(os.path.join(path, str(label.item()), f"train{i}.png"), img.squeeze(0).squeeze(0))
+        imsave(os.path.join(path_to_save, class_ind2label[label.item()], f"{class_ind2label[label.item()]}.png"),
+               img.numpy().squeeze())
+
+
 if __name__ == "__main__":
+    preprocess_github_images()
     generate_dataset(data_type="digits", nb_samples=30)
-    generate_dataset(data_type="operators", nb_samples=10)
+    generate_dataset(data_type="operators", nb_samples=20)

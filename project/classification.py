@@ -4,8 +4,6 @@ from torch import nn
 from torchvision import transforms
 from PIL import Image
 import numpy as np
-import matplotlib.pyplot as plt
-
 from cnn.dataset_creation import inverse_color, to_binary
 
 if os.getcwd().split('\\')[-1] == "project":
@@ -16,10 +14,10 @@ elif os.getcwd().split('\\')[-1] == "cnn":
 WHITE = (255, 255, 255)
 
 
-class Conv_Net(nn.Module):
+class ConvNet(nn.Module):
 
     def __init__(self, nb_classes, nb_hidden=50):
-        super(Conv_Net, self).__init__()
+        super(ConvNet, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3)
         self.fc1 = nn.Linear(1600, nb_hidden)
@@ -79,11 +77,11 @@ class CNNClassifier(BaseClassifier):
             raise NotImplementedError
 
         # Build model
-        self.model = Conv_Net(nb_classes=nb_classes)
+        self.model = ConvNet(nb_classes=nb_classes)
         # Load weights
         self.model.load_state_dict(torch.load(weights_path))
 
-    def predict(self, image, return_raw_label=False):
+    def predict(self, image, return_raw_label=False, print_info=False):
         """
 
         :param image: Image to classify as numpy array
@@ -116,9 +114,10 @@ class CNNClassifier(BaseClassifier):
 
         predictions = np.array(predictions)
         highest_conf_ind = np.argmax(predictions[:, 1])
-        print(f"Prediction: {predictions[highest_conf_ind, 0]}, "
-              f"Highest conf: {predictions[highest_conf_ind, 1]}, "
-              f"at angle: {predictions[highest_conf_ind, 2]}")
+        if print_info:
+            print(f"Prediction: {predictions[highest_conf_ind, 0]}, "
+                  f"Highest conf: {predictions[highest_conf_ind, 1]}, "
+                  f"at angle: {predictions[highest_conf_ind, 2]}")
 
         if return_raw_label:  # For testing cnn performance
             if self.data_type == "digits":

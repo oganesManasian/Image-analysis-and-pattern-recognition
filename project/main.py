@@ -48,12 +48,14 @@ def main(args):
     # Passed objects classification
     digits = passed_objects[::2]
     classifier_digit = CNNClassifier(data_type="digits")
-    predictions_digit = [(classifier_digit.predict(image), frame_ind) for (image, frame_ind) in digits]
+    predictions_digit = [(classifier_digit.predict(image, print_info=True), frame_ind)
+                         for (image, frame_ind) in digits]
     print("Digit predictions", predictions_digit)
 
     operators = passed_objects[1::2]
     classifier_operator = CNNClassifier(data_type="operators")
-    predictions_operator = [(classifier_operator.predict(image), frame_ind) for (image, frame_ind) in operators]
+    predictions_operator = [(classifier_operator.predict(image, print_info=True), frame_ind)
+                            for (image, frame_ind) in operators]
     print("Operator predictions", predictions_operator)
 
     predicted_seq = [None] * (len(predictions_digit) + len(predictions_operator))

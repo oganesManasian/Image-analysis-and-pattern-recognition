@@ -4,6 +4,9 @@ import numpy as np
 import os
 from robot_tracking import get_robot_locations
 
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
+
 
 def read_video(filepath):
     frames = []
@@ -50,12 +53,10 @@ def write_on_frame(frame, text, line):
     draw = ImageDraw.Draw(img)
 
     font = ImageFont.truetype("fonts/Montserrat-Bold.otf", 30)
-    fill_color = (0, 0, 0)  # Making font black
     draw.text((img.width // 4, int(img.height * 0.85)), text,
-              font=font, fill=fill_color)
+              font=font, fill=BLACK)
 
-    red = (255, 0, 0)
-    draw.line(xy=line, width=1, fill=red)
+    draw.line(xy=line, width=1, fill=GREEN)
 
     return np.array(img)
 

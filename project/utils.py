@@ -3,9 +3,6 @@ import shutil
 
 from skimage.io import imsave
 from skimage.transform import resize
-import numpy as np
-
-import cv2
 
 
 def box2image(image, box, image_size=(28, 28)):
@@ -69,4 +66,3 @@ def create_video_dataset(initial_image, object_boxes, video_dataset_path="cnn/vi
                             label,
                             f"objects{i}.png"),
                image)
-
