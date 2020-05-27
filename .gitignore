@@ -1,11 +1,16 @@
-
+# Data
 data/*
+project/cnn/MNIST/*
+
+# Cache
 labs/.ipynb_checkpoints/*
 project/.ipynb_checkpoints/*
 project/__pycache__/*
 project/.idea/*
-project/cnn/MNIST/*
+project/cnn/__pycache__/
+
+# Generated debug data
+project/cnn/metrics/*
 project/videos/output.avi
-project/cnn/train_loss.png
-project/cnn/val_acc.png
-project/cnn/test_acc.png
+project/cnn/generated_dataset/*
+

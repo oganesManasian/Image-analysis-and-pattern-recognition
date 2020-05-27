@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 from classification import Conv_Net
 from dataset_creation import get_digit_loaders, get_operator_loaders
 
-
 # from cross_entropy import CrossEntropyLoss
+METRICS_FOLDER = "metrics"
+WEIGHTS_FOLDER = "weights"
 
 
 def evaluate_model(model, dataloader, device):
@@ -92,50 +93,47 @@ def train(model, nb_epochs, train_loader, val_loader, test_loader, device, eval_
                 best_model = copy.deepcopy(model)
                 best_accuracy = test_acc[-1]
 
+    return best_model, [losses, val_acc, test_acc]
+
+
+def plot_metrics(metrics, model_name):
+    losses, val_acc, test_acc = metrics
     plt.plot(losses)
-    plt.title("Train loss")
-    plt.savefig(fname="train_loss.png")
+    plt.title(f"Train loss {model_name}")
+    plt.savefig(fname=f"{METRICS_FOLDER}/train loss {model_name}.png")
     plt.show()
 
     plt.plot(val_acc)
-    plt.title("Val acc")
-    plt.savefig(fname="val_acc.png")
+    plt.title(f"Val acc {model_name}")
+    plt.savefig(fname=f"{METRICS_FOLDER}/val acc {model_name}.png")
     plt.show()
 
     plt.plot(test_acc)
-    plt.title("Test acc")
-    plt.savefig(fname="test_acc.png")
+    plt.title(f"Test acc {model_name}")
+    plt.savefig(fname=f"{METRICS_FOLDER}/test acc {model_name}.png")
     plt.show()
 
-    return best_model
 
-
-def main():
-    # if os.path.isdir(CNN_PATH):
-    #     shutil.rmtree(CNN_PATH)
-    # os.mkdir(CNN_PATH)
+def generate_model(model_name, get_loaders_method, nb_classes, nb_epochs=5):
+    print(f"Training {model_name} model")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("Using", device)
 
-    print("Training digit model")
-    nb_epochs = 5
-    train_loader, val_loader, test_loader = get_digit_loaders()
+    train_loader, val_loader, test_loader = get_loaders_method(video_dataset_dir="video_dataset")
     print(f"Loaded {len(train_loader)} train batches, {len(val_loader)} val batches, {len(test_loader)} test batches")
 
-    digit_model = Conv_Net(nb_classes=10).to(device)
-    digit_model = train(digit_model, nb_epochs, train_loader, val_loader, test_loader, device)
-    torch.save(digit_model.state_dict(), "model_digits.pth")
-
-    print("Training operator model")
-    nb_epochs = 5
-    train_loader, val_loader, test_loader = get_operator_loaders()
-    print(f"Loaded {len(train_loader)} train batches, {len(val_loader)} val batches, {len(test_loader)} test batches")
-
-    operator_model = Conv_Net(nb_classes=5).to(device)
-    operator_model = train(operator_model, nb_epochs, train_loader, val_loader, test_loader, device)
-    torch.save(operator_model.state_dict(), "model_operators.pth")
+    model = Conv_Net(nb_classes=nb_classes).to(device)
+    model, metrics = train(model, nb_epochs, train_loader, val_loader, test_loader, device)
+    plot_metrics(metrics, model_name)
+    torch.save(model.state_dict(), f"{WEIGHTS_FOLDER}/model_{model_name}.pth")
 
 
 if __name__ == "__main__":
-    main()
+    if not os.path.isdir(WEIGHTS_FOLDER):
+        os.mkdir(WEIGHTS_FOLDER)
+    if not os.path.isdir(METRICS_FOLDER):
+        os.mkdir(METRICS_FOLDER)
+
+    generate_model("digits", get_digit_loaders, 10, nb_epochs=5)
+    generate_model("operators", get_operator_loaders, 5, nb_epochs=50)

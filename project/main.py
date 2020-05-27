@@ -1,16 +1,11 @@
 import argparse
-import os
-import shutil
-from skimage.color import rgb2gray
-from skimage.filters import threshold_otsu
-from skimage.io import imsave
 
 from video import read_video, annotate_frames, frames2video
 from robot_tracking import get_robot_locations
 from object_detection import extract_objects
 from intersections import detect_intersections
 from draw import draw
-from classification import CNNClassifier, FourierClasssifier
+from classification import CNNClassifier
 from utils import box2image, postprocess_predicted_sequence, create_video_dataset
 
 
@@ -54,17 +49,11 @@ def main(args):
     digits = passed_objects[::2]
     classifier_digit = CNNClassifier(data_type="digits")
     predictions_digit = [(classifier_digit.predict(image), frame_ind) for (image, frame_ind) in digits]
-    # TODO delete
-    # predictions_digit = [(digit, frame_ind)
-    #                      for digit, (image, frame_ind) in zip(['1', '2', '3', '9'], digits)]
     print("Digit predictions", predictions_digit)
 
     operators = passed_objects[1::2]
-    # classifier_operator = CNNClassifier(data_type="operators")
-    # predictions_operator = [(classifier_operator.predict(image), frame_ind) for (image, frame_ind) in operators]
-    # TODO delete
-    predictions_operator = [(operator, frame_ind)
-                            for operator, (image, frame_ind) in zip(['/', '+', '*', '='], operators)]
+    classifier_operator = CNNClassifier(data_type="operators")
+    predictions_operator = [(classifier_operator.predict(image), frame_ind) for (image, frame_ind) in operators]
     print("Operator predictions", predictions_operator)
 
     predicted_seq = [None] * (len(predictions_digit) + len(predictions_operator))
@@ -73,7 +62,7 @@ def main(args):
     print("Predicted sequence:", predicted_seq)
 
     # Postprocess predicted_seq
-    seq = postprocess_predicted_sequence(predicted_seq)  # TODO
+    seq = postprocess_predicted_sequence(predicted_seq)
 
     # Calculate expression
     expression = "".join([character for (character, _) in seq])

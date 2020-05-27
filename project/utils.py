@@ -30,11 +30,11 @@ def postprocess_predicted_sequence(seq):
     # Last operator have to be =
     if seq[-1][0] != '=':
         print("Warning: equal sign")
+        seq[-1] = ('=', seq[-1][1])
     return seq
 
 
-def create_video_dataset(initial_image, object_boxes):
-    video_dataset_path = "cnn/video_dataset"
+def create_video_dataset(initial_image, object_boxes, video_dataset_path="cnn/video_dataset"):
     if os.path.isdir(video_dataset_path):
         shutil.rmtree(video_dataset_path)
     os.mkdir(video_dataset_path)
@@ -70,17 +70,3 @@ def create_video_dataset(initial_image, object_boxes):
                             f"objects{i}.png"),
                image)
 
-    # # Save operators
-    # operators_path = "operators"
-    # os.mkdir(os.path.join(video_dataset_path, operators_path))
-    # for label in ['plus', 'minus', 'multiply', 'divide', 'equal']:
-    #     os.mkdir(os.path.join(video_dataset_path, operators_path, label))
-    #
-    # operators_ind = [25, 35, 12, 14]
-    # labels = ['divide', 'plus', 'multiply', 'equal']
-    # boxes_to_save = [object_boxes[i] for i in operators_ind]
-    # objects_to_save = [box2image(initial_image, box) for box in boxes_to_save]
-    #
-    # for i, (image, label) in enumerate(zip(objects_to_save, labels)):
-    #     imsave(os.path.join(video_dataset_path, operators_path, str(label), f"objects{i}.png"), image)
-    # print("Video dataset created.")

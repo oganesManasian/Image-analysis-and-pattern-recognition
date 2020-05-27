@@ -1,16 +1,18 @@
+import os
 import torch
-from skimage.color import rgb2gray
-from skimage.filters import threshold_otsu
 from torch import nn
 from torchvision import transforms
 from PIL import Image
 import numpy as np
-from collections import defaultdict
 import matplotlib.pyplot as plt
 
-from cnn.dataset_creation import MEAN_DIGITS, STD_DIGITS, inverse_color, to_binary
+from cnn.dataset_creation import inverse_color, to_binary
 
-CNN_PATH = "cnn"
+if os.getcwd().split('\\')[-1] == "project":
+    WEIGHTS_PATH = "cnn/weights"
+elif os.getcwd().split('\\')[-1] == "cnn":
+    WEIGHTS_PATH = "weights"
+
 WHITE = (255, 255, 255)
 
 
@@ -39,7 +41,6 @@ class Conv_Net(nn.Module):
 
     def predict(self, input):
         output = self.softmax(self.forward(input))
-        # predicted = torch.argmax(output, dim=1)
         confidence, predicted = torch.max(output, dim=1)
 
         return predicted, confidence
@@ -55,14 +56,25 @@ class CNNClassifier(BaseClassifier):
         self.data_type = data_type
         if data_type == "digits":
             nb_classes = 10
-            weights_path = f"{CNN_PATH}/model_digits.pth"
-            self.preprocess_digit = transforms.Compose([
+            weights_path = f"{WEIGHTS_PATH}/model_digits.pth"
+            self.preprocess_image = transforms.Compose([
                 transforms.Grayscale(num_output_channels=1),
                 transforms.Lambda(inverse_color),
                 transforms.Lambda(to_binary),
                 transforms.ToTensor(),
                 # transforms.Normalize((MEAN_DIGITS,), (STD_DIGITS,)),
             ])
+        elif data_type == "operators":
+            nb_classes = 5
+            weights_path = f"{WEIGHTS_PATH}/model_operators.pth"
+            self.preprocess_image = transforms.Compose([
+                transforms.Grayscale(num_output_channels=1),
+                transforms.Lambda(inverse_color),
+                transforms.Lambda(to_binary),
+                transforms.ToTensor(),
+                # transforms.Normalize((MEAN_OPERATORS,), (STD_OPERATORS,)),
+            ])
+            self.prediction2label = {0: "/", 1: "=", 2: "-", 3: "*", 4: "+"}
         else:
             raise NotImplementedError
 
@@ -71,7 +83,7 @@ class CNNClassifier(BaseClassifier):
         # Load weights
         self.model.load_state_dict(torch.load(weights_path))
 
-    def predict(self, image):
+    def predict(self, image, return_raw_label=False):
         """
 
         :param image: Image to classify as numpy array
@@ -93,7 +105,7 @@ class CNNClassifier(BaseClassifier):
             # plt.imshow(image_rotated)
             # plt.show()
 
-            image_to_classify = self.preprocess_digit(image_rotated)
+            image_to_classify = self.preprocess_image(image_rotated)
 
             # plt.imshow(image_to_classify.reshape(28, 28), cmap="gray")
             # plt.show()
@@ -108,26 +120,21 @@ class CNNClassifier(BaseClassifier):
               f"Highest conf: {predictions[highest_conf_ind, 1]}, "
               f"at angle: {predictions[highest_conf_ind, 2]}")
 
-        # Calculates sum of probabilities of each digit among different rotations
-        # prediction_scores = defaultdict(list)
-        # for i in range(predictions.shape[0]):
-        #     prediction_scores[predictions[i, 0]].append(predictions[i, 1])
-        #
-        # prediction_scores_sum = np.array([[key, sum(prediction_scores[key])]
-        #                                   for key in prediction_scores.keys()])
-        # # print(sorted(prediction_scores_sum, key=lambda x: x[1], reverse=True))
-        # prediction, confidence = sorted(prediction_scores_sum, key=lambda x: x[1], reverse=True)[0]
-        # print(f"Prediction (sum): {prediction}, Confidence (sum): {confidence}")
-
-        if self.data_type == "digits":
-            return str(int(predictions[highest_conf_ind, 0]))
+        if return_raw_label:  # For testing cnn performance
+            if self.data_type == "digits":
+                return predictions[highest_conf_ind, 0]
+            else:
+                return predictions[highest_conf_ind, 0]
         else:
-            raise NotImplementedError
+            if self.data_type == "digits":
+                return str(int(predictions[highest_conf_ind, 0]))
+            else:
+                return self.prediction2label[predictions[highest_conf_ind, 0]]
 
 
 class FourierClasssifier(BaseClassifier):
     def __init__(self):
-        pass
+        raise NotImplementedError
 
     def predict(self, image):
         pass
