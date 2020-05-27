@@ -11,16 +11,16 @@ from object_detection import extract_objects
 from intersections import detect_intersections
 from draw import draw
 from classification import CNNClassifier, FourierClasssifier
-from utils import box2image, postprocess_predicted_sequence
+from utils import box2image, postprocess_predicted_sequence, create_video_dataset
 
 
 # ROBOT_TRACKING_METHOD = "red_channel_tracking"  # "frame_differencing"
 
 def parse_arguments():
     parser = argparse.ArgumentParser("Testing project")
-    parser.add_argument('--input', default="video files/robot_parcours_1.avi", type=str,
+    parser.add_argument('--input', default="videos/robot_parcours_1.avi", type=str,
                         help='Path to the input video file')
-    parser.add_argument('--output', default="video files/output.avi", type=str,
+    parser.add_argument('--output', default="videos/output.avi", type=str,
                         help='Path where to save output video file')
 
     args = parser.parse_args()
@@ -33,7 +33,7 @@ def main(args):
     print(f"Read video with {len(frames)} frames")
 
     # Extracting trajectory
-    robot_trajectory, robot_boxes = get_robot_locations(frames, method="auto")
+    robot_trajectory = get_robot_locations(frames, method="auto", return_boxes=False)
     draw(frames[-1], trajectory=robot_trajectory, title=f"Extracted robot's trajectory")
 
     # Extracting objects
@@ -41,33 +41,8 @@ def main(args):
     object_centers, object_boxes = extract_objects(initial_image)
     draw(initial_image, boxes=object_boxes, title="Detected objects")
 
-    create_video_dataset = True
-    if create_video_dataset:
-        video_dataset_path = "video_dataset"
-        if os.path.isdir(video_dataset_path):
-            shutil.rmtree(video_dataset_path)
-        os.mkdir(video_dataset_path)
-
-        # Save digits
-        digits_path = "digits"
-        os.mkdir(os.path.join(video_dataset_path, digits_path))
-        for i in range(10):
-            os.mkdir(os.path.join(video_dataset_path, digits_path, str(i)))
-
-        digits_ind = [29, 28, 20, 4, 6, 17]
-        labels = [3, 2, 7, 2, 3, 7]
-        boxes_to_save = [object_boxes[i] for i in digits_ind]
-        objects_to_save = [box2image(initial_image, box) for box in boxes_to_save]
-
-        for i, (image, label) in enumerate(zip(objects_to_save, labels)):
-            image = rgb2gray(image)
-            thresh = threshold_otsu(image)
-            binary = (image > thresh).astype(float)
-            imsave(os.path.join(video_dataset_path, digits_path, str(label), f"objects{i}.png"), binary)
-        print("Video dataset created.")
-
-        # Save operators
-        # TODO
+    # Create dataset from digits and operators extracted on video
+    # create_video_dataset(initial_image, object_boxes)
 
     # Find passed objects
     passed_boxes = detect_intersections(robot_trajectory, object_boxes)
@@ -81,7 +56,7 @@ def main(args):
     predictions_digit = [(classifier_digit.predict(image), frame_ind) for (image, frame_ind) in digits]
     # TODO delete
     # predictions_digit = [(digit, frame_ind)
-    #                      for digit, (image, frame_ind) in zip(['1', '2', '3', '4'], digits)]
+    #                      for digit, (image, frame_ind) in zip(['1', '2', '3', '9'], digits)]
     print("Digit predictions", predictions_digit)
 
     operators = passed_objects[1::2]

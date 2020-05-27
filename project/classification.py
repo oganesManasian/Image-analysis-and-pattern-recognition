@@ -8,9 +8,10 @@ import numpy as np
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
-from cnn.dataset_creation import MEAN_DIGITS, STD_DIGITS
+from cnn.dataset_creation import MEAN_DIGITS, STD_DIGITS, inverse_color, to_binary
 
 CNN_PATH = "cnn"
+WHITE = (255, 255, 255)
 
 
 class Conv_Net(nn.Module):
@@ -21,6 +22,7 @@ class Conv_Net(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3)
         self.fc1 = nn.Linear(1600, nb_hidden)
         self.fc2 = nn.Linear(nb_hidden, nb_classes)
+
         self.relu = torch.nn.ReLU()
         self.pool = torch.nn.MaxPool2d(kernel_size=2)
         self.softmax = torch.nn.Softmax(dim=1)
@@ -49,12 +51,25 @@ class BaseClassifier:
 
 
 class CNNClassifier(BaseClassifier):
-    def __init__(self):
+    def __init__(self, data_type):
+        self.data_type = data_type
+        if data_type == "digits":
+            nb_classes = 10
+            weights_path = f"{CNN_PATH}/model_digits.pth"
+            self.preprocess_digit = transforms.Compose([
+                transforms.Grayscale(num_output_channels=1),
+                transforms.Lambda(inverse_color),
+                transforms.Lambda(to_binary),
+                transforms.ToTensor(),
+                # transforms.Normalize((MEAN_DIGITS,), (STD_DIGITS,)),
+            ])
+        else:
+            raise NotImplementedError
+
         # Build model
-        self.model = Conv_Net(nb_classes=10)
+        self.model = Conv_Net(nb_classes=nb_classes)
         # Load weights
-        self.model.load_state_dict(torch.load(f"{CNN_PATH}/cnn_model.pth"))
-        # self.model.eval()
+        self.model.load_state_dict(torch.load(weights_path))
 
     def predict(self, image):
         """
@@ -62,28 +77,23 @@ class CNNClassifier(BaseClassifier):
         :param image: Image to classify as numpy array
         :return: predicted label
         """
-        image = rgb2gray(image)
-        thresh = threshold_otsu(image)
-        binary = (image > thresh).astype(float)
+        self.model.eval()
+
+        # image = rgb2gray(image)
+        # thresh = threshold_otsu(image)
+        # binary = (image > thresh).astype(float)
 
         rotation_step = 10
         angles = [0 + i * rotation_step for i in range(360 // rotation_step)]
 
         predictions = []
         for angle in angles:
-            image_rotated = Image.fromarray((binary * 255).astype(np.uint8)) \
-                .rotate(angle, fillcolor=(255))
+            image_rotated = Image.fromarray((image * 255).astype(np.uint8)) \
+                .rotate(angle, fillcolor=WHITE)
             # plt.imshow(image_rotated)
             # plt.show()
 
-            preprocess = transforms.Compose([
-                # transforms.Grayscale(num_output_channels=1),
-                # transforms.Lambda(inverse_color),
-                # transforms.Lambda(to_binary),
-                transforms.ToTensor(),
-                # transforms.Normalize((MEAN_DIGITS,), (STD_DIGITS,)),
-            ])
-            image_to_classify = preprocess(image_rotated)
+            image_to_classify = self.preprocess_digit(image_rotated)
 
             # plt.imshow(image_to_classify.reshape(28, 28), cmap="gray")
             # plt.show()
@@ -109,7 +119,10 @@ class CNNClassifier(BaseClassifier):
         # prediction, confidence = sorted(prediction_scores_sum, key=lambda x: x[1], reverse=True)[0]
         # print(f"Prediction (sum): {prediction}, Confidence (sum): {confidence}")
 
-        return predictions[highest_conf_ind, 0]
+        if self.data_type == "digits":
+            return str(int(predictions[highest_conf_ind, 0]))
+        else:
+            raise NotImplementedError
 
 
 class FourierClasssifier(BaseClassifier):

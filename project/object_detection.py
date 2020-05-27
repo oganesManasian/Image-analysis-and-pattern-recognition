@@ -7,7 +7,7 @@ from skimage.color import rgb2gray
 from region_growing import region_growing
 
 
-def extract_objects(image, method='otsu', fill_by='binary_closing', return_boxes=True, return_centers=True):
+def extract_objects(image, method='canny', fill_by='binary_closing', return_boxes=True, return_centers=True):
     """
         Get extracted objects (operators and digits) from the image. 
         You can use different methods to do that. 'canny' method which uses 
@@ -49,7 +49,7 @@ def extract_objects(image, method='otsu', fill_by='binary_closing', return_boxes
 
     if fill_by == 'binary_closing':
         # Fill object regions
-        square_size = [2, 5, 7, 10, 12]
+        square_size = [2, 5, 10]
         mask_similarity_threshold = 0.999
 
         shapes_mask = binary_closing(object_regions, selem=disk(square_size[0]))
@@ -78,7 +78,7 @@ def extract_objects(image, method='otsu', fill_by='binary_closing', return_boxes
 
     if fill_by == 'binary_closing':  # TODO make paddings larger
         # Adding pads on the edges
-        pad = 2
+        pad = 8
     elif fill_by == 'binary_dilation':
         # Dilation already adds padding
         pad = 0
@@ -97,15 +97,16 @@ def extract_objects(image, method='otsu', fill_by='binary_closing', return_boxes
     regions_reduced = []
     threshold_ratio = 5
     min_size_threshold = 10
-    max_size_threshold = 40
+    max_size_threshold = 40 + pad
 
     for region, box in zip(regions, boxes):
         width = box[2] - box[0]
         height = box[3] - box[1]
-        if (width / height < threshold_ratio) \
-                and (height / width < threshold_ratio) \
-                and (max_size_threshold > height > min_size_threshold) \
-                and (max_size_threshold > width > min_size_threshold):
+        # if (width / height < threshold_ratio) \
+        #         and (height / width < threshold_ratio) \
+        #         and (max_size_threshold > height > min_size_threshold) \
+        #         and (max_size_threshold > width > min_size_threshold):
+        if (width / height < threshold_ratio) and (height / width < threshold_ratio):
             boxes_reduced.append(box)
             regions_reduced.append(region)
 

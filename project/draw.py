@@ -20,4 +20,4 @@ def draw(image, trajectory=None, boxes=None, title=None, figsize=(10, 10)):
 
     if title:
         plt.title(title)
-    # plt.show()
+    plt.show()

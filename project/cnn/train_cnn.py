@@ -7,10 +7,10 @@ import copy
 import matplotlib.pyplot as plt
 
 from classification import Conv_Net
-from dataset_creation import get_digit_loaders
-# from cross_entropy import CrossEntropyLoss
+from dataset_creation import get_digit_loaders, get_operator_loaders
 
-CNN_PATH = "cnn"
+
+# from cross_entropy import CrossEntropyLoss
 
 
 def evaluate_model(model, dataloader, device):
@@ -49,8 +49,8 @@ def train(model, nb_epochs, train_loader, val_loader, test_loader, device, eval_
     val_acc = []
     test_acc = []
 
-    # best_accuracy = 0
-    # best_model = None
+    best_accuracy = 0
+    best_model = None
 
     lr = 5e-3
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -88,43 +88,53 @@ def train(model, nb_epochs, train_loader, val_loader, test_loader, device, eval_
             test_acc.append(acc)
             print(f"test acc: {acc}")
 
-            # if test_acc[-1] > best_accuracy:
-            #     best_model = copy.deepcopy(model)
-            #     best_accuracy = test_acc[-1]
+            if test_acc[-1] > best_accuracy:
+                best_model = copy.deepcopy(model)
+                best_accuracy = test_acc[-1]
 
     plt.plot(losses)
     plt.title("Train loss")
-    plt.savefig(fname=f"{CNN_PATH}/train_loss.png")
+    plt.savefig(fname="train_loss.png")
     plt.show()
 
     plt.plot(val_acc)
     plt.title("Val acc")
-    plt.savefig(fname=f"{CNN_PATH}/val_acc.png")
+    plt.savefig(fname="val_acc.png")
     plt.show()
 
     plt.plot(test_acc)
     plt.title("Test acc")
-    plt.savefig(fname=f"{CNN_PATH}/test_acc.png")
+    plt.savefig(fname="test_acc.png")
     plt.show()
 
-    return model
+    return best_model
 
 
 def main():
-    if os.path.isdir(CNN_PATH):
-        shutil.rmtree(CNN_PATH)
-    os.mkdir(CNN_PATH)
+    # if os.path.isdir(CNN_PATH):
+    #     shutil.rmtree(CNN_PATH)
+    # os.mkdir(CNN_PATH)
 
-    nb_epochs = 10
-    train_loader, val_loader, test_loader = get_digit_loaders()
-    print(f"Loaded {len(train_loader)} train batches, {len(val_loader)} val batches, {len(test_loader)} test batches")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("Using", device)
-    model = Conv_Net(nb_classes=10).to(device)
 
-    model = train(model, nb_epochs, train_loader, val_loader, test_loader, device)
+    print("Training digit model")
+    nb_epochs = 5
+    train_loader, val_loader, test_loader = get_digit_loaders()
+    print(f"Loaded {len(train_loader)} train batches, {len(val_loader)} val batches, {len(test_loader)} test batches")
 
-    torch.save(model.state_dict(), f"{CNN_PATH}/cnn_model.pth")
+    digit_model = Conv_Net(nb_classes=10).to(device)
+    digit_model = train(digit_model, nb_epochs, train_loader, val_loader, test_loader, device)
+    torch.save(digit_model.state_dict(), "model_digits.pth")
+
+    print("Training operator model")
+    nb_epochs = 5
+    train_loader, val_loader, test_loader = get_operator_loaders()
+    print(f"Loaded {len(train_loader)} train batches, {len(val_loader)} val batches, {len(test_loader)} test batches")
+
+    operator_model = Conv_Net(nb_classes=5).to(device)
+    operator_model = train(operator_model, nb_epochs, train_loader, val_loader, test_loader, device)
+    torch.save(operator_model.state_dict(), "model_operators.pth")
 
 
 if __name__ == "__main__":
