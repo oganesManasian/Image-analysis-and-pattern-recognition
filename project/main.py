@@ -13,7 +13,7 @@ from utils import box2image, postprocess_predicted_sequence, create_video_datase
 
 def parse_arguments():
     parser = argparse.ArgumentParser("Testing project")
-    parser.add_argument('--input', default="videos/robot_parcours_1.avi", type=str,
+    parser.add_argument('--input', default="videos/robot_parcours_3.avi", type=str,
                         help='Path to the input video file')
     parser.add_argument('--output', default="videos/output.avi", type=str,
                         help='Path where to save output video file')
