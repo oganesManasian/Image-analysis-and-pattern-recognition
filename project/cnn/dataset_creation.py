@@ -8,6 +8,7 @@ import shutil
 from torch.utils.data.sampler import SubsetRandomSampler
 from random import randint
 from skimage.io import imsave
+from skimage.filters import threshold_otsu
 
 MEAN_DIGITS = 0.8694
 STD_DIGITS = 0.3303
@@ -33,8 +34,13 @@ def fix_background_color_bug(img):
     return PIL.Image.fromarray(data)
 
 
-def to_binary(img):
-    return PIL.Image.eval(img, lambda val: 255 if val < (256 / 2) else 0)
+def to_binary(img, method='otsu'):
+    if method == 'otsu':
+        return PIL.Image.eval(img, lambda val: 255 if val < threshold_otsu(np.array(img)) else 0)
+    elif method == 'manual':
+        return PIL.Image.eval(img, lambda val: 255 if val < (256 / 2) else 0)
+    else:
+        NotImplementedError
 
 
 def get_stats(dataset):
