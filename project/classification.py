@@ -85,7 +85,8 @@ class CNNClassifier(BaseClassifier):
             # Build model
             self.model = Conv_Net(nb_hidden=100, nb_conv3=128, nb_out=10)
             name = "digit_model_binary" if minst_binary else "digit_model"
-            self.model.load_state_dict(torch.load(path+name))
+            option = "_with_median" if with_median_filter else ""
+            self.model.load_state_dict(torch.load(path+name+option))
             self.model.eval()
         elif self.data_type == "operators":
             self.model = Conv_Net(nb_hidden=25, nb_conv3=64, nb_out=5)
