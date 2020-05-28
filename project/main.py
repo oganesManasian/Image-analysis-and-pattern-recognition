@@ -26,7 +26,7 @@ def parse_arguments():
 def main(args):
     # Reading video
     frames = read_video(args.input)
-    print(f"Read video with {len(frames)} frames")
+    print(f"Read video {args.input} with {len(frames)} frames")
 
     # Extracting trajectory
     robot_trajectory, robot_boxes = get_robot_locations(frames, method="auto")
@@ -36,7 +36,7 @@ def main(args):
     initial_image = frames[0]
     object_centers, object_boxes = extract_objects(initial_image)
 
-    save([box2image(initial_image, box) for box in object_boxes], "digits")
+    # save([box2image(initial_image, box) for box in object_boxes], "all_objects")
 
     draw(initial_image, boxes=object_boxes, title="Detected objects")
 
@@ -49,7 +49,9 @@ def main(args):
 
     # Passed objects classification
     digits = passed_objects[::2]
-    classifier_digit = CNNClassifier("digits", minst_binary=False, with_filter="dilation", version=5)
+    # save([pair[0] for pair in digits], "digits")
+    classifier_digit = CNNClassifier("digits", path="weights/", minst_binary=False, with_filter="median", version=2)
+    # classifier_digit = CNNClassifier("digits", minst_binary=False, with_filter="dilation", version=5)
     predictions_digit = [(classifier_digit.predict(image), frame_ind) for (image, frame_ind) in digits]
     # TODO delete
     # predictions_digit = [(digit, frame_ind)
@@ -57,6 +59,7 @@ def main(args):
     print("Digit predictions", predictions_digit)
 
     operators = passed_objects[1::2]
+    # save([pair[0] for pair in operators], "operators")
     classifier_operator = CNNClassifier(data_type="operators")
     predictions_operator = [(classifier_operator.predict(image), frame_ind) for (image, frame_ind) in operators]
     # TODO delete
@@ -78,7 +81,7 @@ def main(args):
     print(f"Expression evaluation:\n{expression}{expression_result}")
 
     # Create output video
-    annotated_frames = annotate_frames(frames, seq, expression_result, robot_trajectory)
+    annotated_frames = annotate_frames(frames, seq, expression_result, robot_trajectory, passed_boxes)
     assert len(frames) == len(annotated_frames)
     frames2video(annotated_frames, args.output)
     print("Output video created!")

@@ -23,7 +23,7 @@ def read_video(filepath):
     return frames
 
 
-def annotate_frames(frames, seq, expression_result, trajectory):
+def annotate_frames(frames, seq, expression_result, trajectory, boxes):
     reversed_seq = list(reversed(seq))
     complete_expression = ""
     new_frames = []
@@ -38,13 +38,14 @@ def annotate_frames(frames, seq, expression_result, trajectory):
             complete_expression += str(expression_result)
 
         # Writing on image
-        new_frame = write_on_frame(frames[i], complete_expression, trajectory[:i])
+        boxes_to_display = [box for (box, step) in boxes if step not in [i, i-1, i-2, i-3]]
+        new_frame = write_on_frame(frames[i], complete_expression, trajectory[:i], boxes_to_display)
         new_frames.append(new_frame)
 
     return new_frames
 
 
-def write_on_frame(frame, text, line):
+def write_on_frame(frame, text, line, boxes):
     img = Image.fromarray(frame)
     draw = ImageDraw.Draw(img)
 
@@ -55,6 +56,9 @@ def write_on_frame(frame, text, line):
 
     red = (255, 0, 0)
     draw.line(xy=line, width=1, fill=red)
+
+    for box in boxes:
+        draw.rectangle(xy=box, outline=0)
 
     return np.array(img)
 
