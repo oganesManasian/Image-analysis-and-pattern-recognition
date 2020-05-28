@@ -164,20 +164,20 @@ if __name__ == "__main__":
 
     # Training using stored data (more convenient since we can first generate large dataset and then train on it)
     # Train digits model
-    # generate_dataset(data_type="digits",
-    #                  nb_samples=2048,
-    #                  use_only_video_dataset=False)
-    # preprocess_image = transforms.Compose([
-    #     transforms.Grayscale(num_output_channels=1),
-    #     transforms.Lambda(inverse_color),
-    #     transforms.Lambda(to_binary),
-    #     transforms.ToTensor(),
-    #     # transforms.Normalize((MEAN_DIGITS,), (STD_DIGITS,)),
-    # ])
-    # dataset = datasets.ImageFolder(root="generated_dataset/digits",
-    #                                transform=preprocess_image)
-    # train_loader, val_loader = get_loaders(dataset, batch_size=32)
-    # generate_model("digits", train_loader, val_loader, None, 10, nb_epochs=20)
+    generate_dataset(data_type="digits",
+                     nb_samples=2048,
+                     use_only_video_dataset=False)
+    preprocess_image = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),
+        transforms.Lambda(inverse_color),
+        transforms.Lambda(to_binary),
+        transforms.ToTensor(),
+        # transforms.Normalize((MEAN_DIGITS,), (STD_DIGITS,)),
+    ])
+    dataset = datasets.ImageFolder(root="generated_dataset/digits",
+                                   transform=preprocess_image)
+    train_loader, val_loader = get_loaders(dataset, batch_size=32)
+    generate_model("digits", train_loader, val_loader, None, 10, nb_epochs=20)
 
     # Train operators model
     generate_dataset(data_type="operators",
