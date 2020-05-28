@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from torchvision import datasets
 from torchvision.transforms import transforms
 
-from classification import ConvNet
+
+from cnn.networks import ConvNetSmall, ConvNet
 from dataset_creation import get_digit_loaders, get_operator_loaders
 # from cross_entropy import CrossEntropyLoss
 
@@ -49,13 +50,14 @@ class LabelSmoothingLoss(nn.Module):
 
 def train(model, nb_epochs, train_loader, val_loader, test_loader, device, eval_freq=1):
     losses = []
+    train_acc = []
     val_acc = []
     test_acc = []
 
     best_accuracy = 0
     best_model = None
 
-    lr = 5e-3
+    lr = 1e-3
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     # criterion = nn.CrossEntropyLoss()
@@ -80,6 +82,12 @@ def train(model, nb_epochs, train_loader, val_loader, test_loader, device, eval_
 
         if (e + 1) % eval_freq == 0:
             with torch.no_grad():
+                model.eval()
+
+                acc = evaluate_model(model, train_loader, device)
+                train_acc.append(acc)
+                print(f"train acc: {acc}")
+
                 acc = evaluate_model(model, val_loader, device)
                 val_acc.append(acc)
                 print(f"val acc: {acc}")
@@ -93,14 +101,21 @@ def train(model, nb_epochs, train_loader, val_loader, test_loader, device, eval_
                 best_accuracy = test_acc[-1]
                 print("Best model saved")
 
-    return best_model, [losses, val_acc, test_acc]
+    print(f"Best test acc reached {max(test_acc)}")
+    return best_model, [losses, train_acc, val_acc, test_acc]
 
 
 def plot_metrics(metrics, model_name):
-    losses, val_acc, test_acc = metrics
+    losses, train_acc, val_acc, test_acc = metrics
+
     plt.plot(losses)
     plt.title(f"Train loss {model_name}")
     plt.savefig(fname=f"{METRICS_FOLDER}/train loss {model_name}.png")
+    plt.show()
+
+    plt.plot(train_acc)
+    plt.title(f"train acc {model_name}")
+    plt.savefig(fname=f"{METRICS_FOLDER}/train acc {model_name}.png")
     plt.show()
 
     plt.plot(val_acc)
@@ -125,7 +140,11 @@ def generate_model(model_name, train_loader, val_loader, test_loader, nb_classes
 
     print(f"Loaded {len(train_loader)} train batches, {len(val_loader)} val batches, {len(test_loader)} test batches")
 
-    model = ConvNet(nb_classes=nb_classes).to(device)
+    if model_name == "digits":
+        model = ConvNet(nb_classes=nb_classes).to(device)
+    elif model_name == "operators":
+        model = ConvNetSmall(nb_classes=nb_classes).to(device)
+
     model, metrics = train(model, nb_epochs, train_loader, val_loader, test_loader, device)
     plot_metrics(metrics, model_name)
     torch.save(model.state_dict(), f"{WEIGHTS_FOLDER}/model_{model_name}.pth")
@@ -145,20 +164,20 @@ if __name__ == "__main__":
 
     # Training using stored data (more convenient since we can first generate large dataset and then train on it)
     # Train digits model
-    generate_dataset(data_type="digits",
-                     nb_samples=1024,
-                     use_only_video_dataset=False)
-    preprocess_image = transforms.Compose([
-        transforms.Grayscale(num_output_channels=1),
-        transforms.Lambda(inverse_color),
-        transforms.Lambda(to_binary),
-        transforms.ToTensor(),
-        # transforms.Normalize((MEAN_DIGITS,), (STD_DIGITS,)),
-    ])
-    dataset = datasets.ImageFolder(root="generated_dataset/digits",
-                                   transform=preprocess_image)
-    train_loader, val_loader = get_loaders(dataset, batch_size=32)
-    generate_model("digits", train_loader, val_loader, None, 10, nb_epochs=20)
+    # generate_dataset(data_type="digits",
+    #                  nb_samples=2048,
+    #                  use_only_video_dataset=False)
+    # preprocess_image = transforms.Compose([
+    #     transforms.Grayscale(num_output_channels=1),
+    #     transforms.Lambda(inverse_color),
+    #     transforms.Lambda(to_binary),
+    #     transforms.ToTensor(),
+    #     # transforms.Normalize((MEAN_DIGITS,), (STD_DIGITS,)),
+    # ])
+    # dataset = datasets.ImageFolder(root="generated_dataset/digits",
+    #                                transform=preprocess_image)
+    # train_loader, val_loader = get_loaders(dataset, batch_size=32)
+    # generate_model("digits", train_loader, val_loader, None, 10, nb_epochs=20)
 
     # Train operators model
     generate_dataset(data_type="operators",

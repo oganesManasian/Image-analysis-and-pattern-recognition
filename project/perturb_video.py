@@ -11,7 +11,7 @@ def rotate_and_pert_brightness(frames):
         It outputs the adjusted frames and save the video in the video_files.
     """
 
-    angle = uniform(0, 45)
+    angle = uniform(0, 180)
     gamma = uniform(0.3, 1.7)
 
     frames_adjusted = [(rotate(brightness(frame, gamma=gamma), angle=angle) * 255).astype('uint8') for frame in frames]

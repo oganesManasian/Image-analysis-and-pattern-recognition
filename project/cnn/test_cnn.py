@@ -52,7 +52,7 @@ def test_model(data_type, nb_samples=1000, use_only_video_dataset=True):
 if __name__ == "__main__":
     acc_digits, acc_operators = None, None
 
-    acc_digits = test_model(data_type="digits", nb_samples=512, use_only_video_dataset=True)
-    acc_operators = test_model(data_type="operators", nb_samples=512, use_only_video_dataset=True)
+    # acc_digits = test_model(data_type="digits", nb_samples=512, use_only_video_dataset=False)
+    acc_operators = test_model(data_type="operators", nb_samples=512, use_only_video_dataset=False)
 
     print(f"Test accuracy digits: {acc_digits}, operators: {acc_operators}")

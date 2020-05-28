@@ -1,11 +1,11 @@
 import os
 import torch
-from torch import nn
 from torchvision import transforms
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 
+from cnn.networks import ConvNetSmall, ConvNet
 from cnn.dataset_creation import inverse_color, to_binary
 
 if os.getcwd().split('\\')[-1] == "project":
@@ -14,36 +14,6 @@ elif os.getcwd().split('\\')[-1] == "cnn":
     WEIGHTS_PATH = "weights"
 
 WHITE = (255, 255, 255)
-
-
-class ConvNet(nn.Module):
-
-    def __init__(self, nb_classes, nb_hidden=50):
-        super(ConvNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3)
-        self.fc1 = nn.Linear(1600, nb_hidden)
-        self.fc2 = nn.Linear(nb_hidden, nb_classes)
-
-        self.relu = torch.nn.ReLU()
-        self.pool = torch.nn.MaxPool2d(kernel_size=2)
-        self.softmax = torch.nn.Softmax(dim=1)
-
-    # Creating the forward pass
-    def forward(self, x):
-        x = self.relu(self.pool(self.conv1(x)))
-        x = self.relu(self.pool(self.conv2(x)))
-        x = x.view(x.size(0), -1)
-        x = self.relu(self.fc1(x))
-        x = self.fc2(x)
-
-        return x
-
-    def predict(self, input):
-        output = self.softmax(self.forward(input))
-        confidence, predicted = torch.max(output, dim=1)
-
-        return predicted, confidence
 
 
 class BaseClassifier:
@@ -61,15 +31,17 @@ class CNNClassifier(BaseClassifier):
         if data_type == "digits":
             nb_classes = 10
             weights_path = f"{WEIGHTS_PATH}/model_digits.pth"
+            self.model = ConvNet(nb_classes=nb_classes)
         elif data_type == "operators":
             nb_classes = 5
+            self.model = ConvNetSmall(nb_classes=nb_classes)
             weights_path = f"{WEIGHTS_PATH}/model_operators.pth"
             self.prediction2label = {0: "/", 1: "=", 2: "-", 3: "*", 4: "+"}
         else:
             raise NotImplementedError
 
-        # Build model
-        self.model = ConvNet(nb_classes=nb_classes)
+        # # Build model
+        # self.model = ConvNet(nb_classes=nb_classes)
         # Load weights
         self.model.load_state_dict(torch.load(weights_path))
 
