@@ -14,9 +14,9 @@ from pickle_helper import save
 
 def parse_arguments():
     parser = argparse.ArgumentParser("Testing project")
-    parser.add_argument('--input', default="video files/robot_parcours_1.avi", type=str,
+    parser.add_argument('--input', default="input_videos/robot_parcours_1.avi", type=str,
                         help='Path to the input video file')
-    parser.add_argument('--output', default="video files/output.avi", type=str,
+    parser.add_argument('--output', default="output_videos/output.avi", type=str,
                         help='Path where to save output video file')
 
     args = parser.parse_args()
