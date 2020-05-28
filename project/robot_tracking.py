@@ -1,7 +1,7 @@
 import numpy as np
 
 from skimage.morphology import binary_closing, disk
-from skimage.filters import gaussian
+from skimage.filters import gaussian, threshold_otsu
 
 from region_growing import region_growing
 
@@ -127,11 +127,11 @@ def get_red_objects(frames, red_threshold=100, green_threshold=100, blue_thresho
         frames : list of 2D arrays
             The list containing all video frames
         red_threshold : float
-            The threshold for red channel (by default > 128)
+            The threshold for red channel (by default > 100)
         green_threshold : float
-            The threshold for green channel (by default < 128)
+            The threshold for green channel (by default < 100)
         blue_threshold : float
-            The threshold for blue channel (by default < 128)
+            The threshold for blue channel (by default < 100)
 
         Returns
         -------
@@ -144,14 +144,19 @@ def get_red_objects(frames, red_threshold=100, green_threshold=100, blue_thresho
             (frame[:, :, 2] < blue_threshold) for frame in frames]
 
 
-def get_bounding_boxes(frames):
+def get_bounding_boxes(frames, method='otsu'):
     """
         Get bounding boxes coordianates of the arrow.
+        If method='otsu' then the function extracts the arrow
+        by Otsu thresholding, if method='manual'
+        then the function extracts the arrow by 100 thresholding.
 
         Parameters
         ----------
         frames : list of 2D arrays
             The list containing all video frames
+        method : str
+            The method used for getting the boxes.
 
         Returns
         -------
@@ -159,7 +164,14 @@ def get_bounding_boxes(frames):
             [xmin, ymin, xmax, ymax] coordinates of the arrow box.
     """
 
-    frames_red = get_red_objects(frames)
+    if method == 'otsu':
+        thresh = threshold_otsu(frames[0][:, :, 0])
+    elif method == 'manual':
+        thresh = 100
+    else:
+        NotImplementedError
+        
+    frames_red = get_red_objects(frames, red_threshold=thresh, green_threshold=thresh, blue_threshold=thresh)
     frames_red_cleaned = [binary_closing(frame_red, selem=disk(2)) for frame_red in frames_red]
     frames_red_regions = [region_growing(frame_red) for frame_red in frames_red_cleaned]
     arrows = [np.array(max(red_regions, key=len)) for red_regions in frames_red_regions]
