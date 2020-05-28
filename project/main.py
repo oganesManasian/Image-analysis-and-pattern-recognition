@@ -7,6 +7,7 @@ from intersections import detect_intersections
 from draw import draw
 from classification import CNNClassifier, FourierClasssifier
 from utils import box2image, postprocess_predicted_sequence
+from pickle_helper import save
 
 
 # ROBOT_TRACKING_METHOD = "red_channel_tracking"  # "frame_differencing"
@@ -22,13 +23,6 @@ def parse_arguments():
     return args
 
 
-import pickle
-
-def save(obj, name):
-    with open('{}.pickle'.format(name), 'wb') as handle:
-        pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-
 def main(args):
     # Reading video
     frames = read_video(args.input)
@@ -41,7 +35,11 @@ def main(args):
     # Extracting objects
     initial_image = frames[0]
     object_centers, object_boxes = extract_objects(initial_image)
+
+    save([box2image(initial_image, box) for box in object_boxes], "digits")
+
     draw(initial_image, boxes=object_boxes, title="Detected objects")
+
 
     # Find passed objects
     passed_boxes = detect_intersections(robot_trajectory, object_boxes)
@@ -51,8 +49,7 @@ def main(args):
 
     # Passed objects classification
     digits = passed_objects[::2]
-    save(digits, "digits")
-    classifier_digit = CNNClassifier(data_type="digits", minst_binary=False, with_median_filter=True)
+    classifier_digit = CNNClassifier("digits", minst_binary=False, with_filter="dilation", version=5)
     predictions_digit = [(classifier_digit.predict(image), frame_ind) for (image, frame_ind) in digits]
     # TODO delete
     # predictions_digit = [(digit, frame_ind)

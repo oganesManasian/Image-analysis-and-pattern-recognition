@@ -9,10 +9,12 @@ from skimage.filters import median
 
 binary_image = False
 
-operators_mean, operators_std = 0.2031257599592209, 0.279224157333374
-minst_mean, minst_std = 0.1592080444097519, 0.2912784218788147
+operators_mean, operators_std = 0.25933927297592163, 0.28819260001182556
+minst_mean, minst_std = 0.12084347009658813, 0.2412548065185547
 minst_mean_binary, minst_std_binary = .813676118850708, 0.38431620597839355
 # 0.09182075411081314, 0.195708230137825
+
+from skimage.morphology import dilation
 
 def inverse_color(img):
     return PIL.Image.eval(img, lambda val: 255 - val)
@@ -27,6 +29,9 @@ def to_binary(img):
 
 def median_filter(img):
     return PIL.Image.fromarray(median(np.array(img)))
+
+def to_dilated(img):
+    return PIL.Image.fromarray(dilation(np.array(img)))
 
 # from keras.regularizers import L1L2
 # from keras.layers import Conv2D
@@ -75,22 +80,31 @@ class BaseClassifier:
 
 
 class CNNClassifier(BaseClassifier):
-    def __init__(self, data_type, path="", minst_binary=True, with_median_filter=False):
+    def __init__(self, data_type, path="", minst_binary=True, with_filter=None, version=0, load_model=True):
         self.data_type = data_type
         self.minst_binary = minst_binary
-        self.with_median_filter = with_median_filter
+        self.with_filter = with_filter
+
+        if not load_model:
+            return
 
         # Load weights
         if self.data_type == "digits":
             # Build model
             self.model = Conv_Net(nb_hidden=100, nb_conv3=128, nb_out=10)
             name = "digit_model_binary" if minst_binary else "digit_model"
-            option = "_with_median" if with_median_filter else ""
-            self.model.load_state_dict(torch.load(path+name+option))
-            self.model.eval()
+            option = "_with_" + self.with_filter if self.with_filter is not None else ""
+            try:
+                version_str = "_"+str(version) if version > 0 else ""
+                full_name = path+name+option+version_str
+                self.model.load_state_dict(torch.load(full_name))
+                self.model.eval()
+            except Exception as e:
+                print(e)
+
         elif self.data_type == "operators":
             self.model = Conv_Net(nb_hidden=25, nb_conv3=64, nb_out=5)
-            self.model.load_state_dict(torch.load(path+"operator_model"))
+            self.model.load_state_dict(torch.load(path+"weights/operators_model"))
             self.model.eval()
         else:
             raise ValueError
@@ -114,8 +128,16 @@ class CNNClassifier(BaseClassifier):
         if binary:
             all_transforms.append(transforms.Lambda(to_binary))
 
-        if self.with_median_filter:
-            all_transforms.append(transforms.Lambda(median_filter))
+        # if self.with_median_filter:
+        #     all_transforms.append(transforms.Lambda(median_filter))
+
+        if self.with_filter is not None:
+            if self.with_filter == "median":
+                all_transforms.append(transforms.Lambda(median_filter))
+            elif self.with_filter == "dilation":
+                all_transforms.append(transforms.Lambda(to_dilated))
+            else:
+                raise ValueError
 
         all_transforms.extend([
             transforms.ToTensor(),
@@ -131,6 +153,8 @@ class CNNClassifier(BaseClassifier):
         # pil_img.show()
         binary = self.data_type == "digits" and self.minst_binary
         tensor = transforms.Compose(self.get_transforms(binary))(pil_img).unsqueeze(dim=0)
+
+        # transforms.Compose(self.get_transforms(binary)[:-2])(pil_img).show()
 
         class_ = self.model(tensor).argmax().item()
 
