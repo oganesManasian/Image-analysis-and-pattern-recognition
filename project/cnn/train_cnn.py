@@ -96,7 +96,7 @@ def train(model, nb_epochs, train_loader, val_loader, test_loader, device, eval_
                 test_acc.append(acc)
                 print(f"test acc: {acc}")
 
-            if test_acc[-1] > best_accuracy:
+            if test_acc[-1] >= best_accuracy:
                 best_model = copy.deepcopy(model)
                 best_accuracy = test_acc[-1]
                 print("Best model saved")
@@ -144,6 +144,7 @@ def generate_model(model_name, train_loader, val_loader, test_loader, nb_classes
         model = ConvNet(nb_classes=nb_classes).to(device)
     elif model_name == "operators":
         model = ConvNetSmall(nb_classes=nb_classes).to(device)
+        # model = ConvNet(nb_classes=nb_classes).to(device)
 
     model, metrics = train(model, nb_epochs, train_loader, val_loader, test_loader, device)
     plot_metrics(metrics, model_name)
@@ -166,7 +167,10 @@ if __name__ == "__main__":
     # Train digits model
     generate_dataset(data_type="digits",
                      nb_samples=2048,
-                     use_only_video_dataset=False)
+                     use_only_video_dataset=False,
+                     train_rotation=180,
+                     test_rotation=180
+                     )
     preprocess_image = transforms.Compose([
         transforms.Grayscale(num_output_channels=1),
         transforms.Lambda(inverse_color),
@@ -181,8 +185,11 @@ if __name__ == "__main__":
 
     # Train operators model
     generate_dataset(data_type="operators",
-                     nb_samples=1024,
-                     use_only_video_dataset=False)
+                     nb_samples=2048,
+                     use_only_video_dataset=False,
+                     train_rotation=180,
+                     test_rotation=180
+                     )
     preprocess_image = transforms.Compose([
         transforms.Grayscale(num_output_channels=1),
         transforms.Lambda(inverse_color),

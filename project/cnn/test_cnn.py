@@ -26,7 +26,7 @@ def get_accuracy(model, dataloader):
     return acc
 
 
-def test_model(data_type, nb_samples=1000, use_only_video_dataset=True):
+def test_model(data_type, nb_samples=1000, use_only_video_dataset=False):
     print(f"Testing {data_type} model")
     # Generate dataset
     generate_dataset(data_type=data_type, nb_samples=nb_samples, use_only_video_dataset=use_only_video_dataset)
