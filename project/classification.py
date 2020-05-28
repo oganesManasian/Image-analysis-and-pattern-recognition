@@ -91,6 +91,9 @@ class CNNClassifier(BaseClassifier):
         :param image: Image to classify as numpy array
         :return: predicted class as string
         """
+        image = Image.fromarray((image * 255).astype(np.uint8))
+        background_color = image.getpixel((0, 0))
+
         with torch.no_grad():
             self.model.eval()
 
@@ -99,8 +102,8 @@ class CNNClassifier(BaseClassifier):
 
             predictions = []
             for angle in angles:
-                image_rotated = Image.fromarray((image * 255).astype(np.uint8)) \
-                    .rotate(angle, fillcolor=WHITE)
+                image_rotated = image.rotate(angle, fillcolor=background_color)
+
                 # plt.imshow(image_rotated)
                 # plt.show()
 
