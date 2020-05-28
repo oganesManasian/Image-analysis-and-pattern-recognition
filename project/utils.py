@@ -39,6 +39,10 @@ def postprocess_predicted_sequence(seq):
         if seq[i][0] == "=":
             print("Warning: equal sign")
             seq[i] = ("+", seq[i][1])
+
+    # Before equal sign there must be a digit
+    if not seq[-2][0].isdigit():
+        seq[-2] = ('1', seq[-2][1])
     return seq
 
 

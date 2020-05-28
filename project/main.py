@@ -13,7 +13,7 @@ from utils import box2image, postprocess_predicted_sequence, create_video_datase
 
 def parse_arguments():
     parser = argparse.ArgumentParser("Testing project")
-    parser.add_argument('--input', default="videos/robot_parcours_1.avi", type=str,
+    parser.add_argument('--input', default="videos/robot_parcours_2.avi", type=str,
                         help='Path to the input video file')
     parser.add_argument('--output', default="videos/output.avi", type=str,
                         help='Path where to save output video file')
@@ -65,15 +65,20 @@ def main(args):
 
     # Postprocess predicted_seq
     seq = postprocess_predicted_sequence(predicted_seq)
+    print("Postprocessed sequence:", seq)
 
     # Calculate expression
     expression = "".join([character for (character, _) in seq])
-    expression_result = round(eval(expression[:-1]), 2)  # Eval needs expression without = sign
+    try:
+        expression_result = round(eval(expression[:-1]), 2)  # Eval needs expression without = sign
+    except SyntaxError:
+        expression_result = 0
+        print("Warning: syntax error")
     print(f"Expression evaluation:\n{expression}{expression_result}")
 
     # Create output video
     annotated_frames = annotate_frames(frames, seq, expression_result, robot_trajectory)
-    assert len(frames) == len(annotated_frames)
+    assert len(frames) == len(annotated_frames) and "Not correct number of annotated frames"
     frames2video(annotated_frames, args.output)
     print("Output video created!")
 
