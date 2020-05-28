@@ -34,13 +34,13 @@ def fix_background_color_bug(img):
     return PIL.Image.fromarray(data)
 
 
-def to_binary(img, method='otsu'):
+def to_binary(img, method='manual'):
     if method == 'otsu':
         return PIL.Image.eval(img, lambda val: 255 if val < threshold_otsu(np.array(img)) else 0)
     elif method == 'manual':
         return PIL.Image.eval(img, lambda val: 255 if val < (256 / 2) else 0)
     else:
-        NotImplementedError
+        raise NotImplementedError
 
 
 def get_stats(dataset):
@@ -101,8 +101,8 @@ def get_digit_loaders(batch_size=64, train_rotation=5, test_rotation=5):
     ])
 
     mnist_dataset = datasets.MNIST("", transform=minst_transform, download=True)
-    mnist_mean, mnist_std = get_stats(mnist_dataset)
-    print(f"Digit's dataset mean {mnist_mean}, std {mnist_std}")
+    # mnist_mean, mnist_std = get_stats(mnist_dataset)
+    # print(f"Digit's dataset mean {mnist_mean}, std {mnist_std}")
     train_loader, val_loader = get_loaders(mnist_dataset, batch_size=batch_size)
 
     # Creating dataset with images from video dataset
@@ -137,8 +137,8 @@ def get_operator_loaders(batch_size=1, train_rotation=5, test_rotation=5):
     ])
 
     operators_dataset = datasets.ImageFolder(root='operators', transform=github_transform)
-    operators_mean, operators_std = get_stats(operators_dataset)
-    print(f"Operator's dataset mean {operators_mean}, std {operators_std}")
+    # operators_mean, operators_std = get_stats(operators_dataset)
+    # print(f"Operator's dataset mean {operators_mean}, std {operators_std}")
     train_loader, val_loader = get_loaders(operators_dataset, batch_size=batch_size, validation_split=0)
 
     # Creating dataset with images from video dataset

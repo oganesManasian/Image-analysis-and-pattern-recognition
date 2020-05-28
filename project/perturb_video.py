@@ -11,8 +11,8 @@ def rotate_and_pert_brightness(frames):
         It outputs the adjusted frames and save the video in the video_files.
     """
 
-    angle = uniform(0, 180)
-    gamma = uniform(0, 2)
+    angle = uniform(0, 45)
+    gamma = uniform(0.3, 1.7)
 
     frames_adjusted = [(rotate(brightness(frame, gamma=gamma), angle=angle) * 255).astype('uint8') for frame in frames]
 
@@ -46,18 +46,29 @@ def brightness(x, gamma=1, gain=1, is_random=False):
     return x
 
 
-if __name__ == "__main__":
+def generate_new_video():
     src_video_path = "videos/robot_parcours_1.avi"
     existing_videos = os.listdir("videos")
     max_ind = 1
     for file in existing_videos:
-        last_character = file.split(".")[0][-1]
-        if not last_character.isdigit():
-            continue
-        video_ind = int(last_character)
+        last2characters = file.split(".")[0][-2:]
+        if last2characters.isdigit():
+            video_ind = int(last2characters)
+        else:
+            last_character = file.split(".")[0][-1]
+            if last_character.isdigit():
+                video_ind = int(last_character)
+            else:
+                continue
+
         max_ind = max(max_ind, video_ind)
     new_video_path = f"videos/robot_parcours_{max_ind + 1}.avi"
 
     frames = read_video(src_video_path)
     frames_adjusted = rotate_and_pert_brightness(frames)
     frames2video(frames_adjusted, new_video_path)
+    return new_video_path
+
+
+if __name__ == "__main__":
+    generate_new_video()

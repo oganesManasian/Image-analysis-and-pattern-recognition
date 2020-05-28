@@ -52,7 +52,7 @@ class BaseClassifier:
 
 
 class CNNClassifier(BaseClassifier):
-    def __init__(self, data_type):
+    def __init__(self, data_type, method='manual'):
         """
         Initializes model with pretrained weights
         :param data_type: Type of data to work on. Either 'digits' or 'operators'
@@ -76,7 +76,8 @@ class CNNClassifier(BaseClassifier):
         self.preprocess_image = transforms.Compose([
             transforms.Grayscale(num_output_channels=1),
             transforms.Lambda(inverse_color),
-            transforms.Lambda(to_binary),
+            # transforms.Lambda(to_binary),
+            transforms.Lambda(lambda img: to_binary(img, method)),
             # TODO use instead of resizing in box2image function
             # Issue: Fills with opposite color
             # transforms.Resize((28, 28)),
@@ -90,26 +91,27 @@ class CNNClassifier(BaseClassifier):
         :param image: Image to classify as numpy array
         :return: predicted class as string
         """
-        self.model.eval()
+        with torch.no_grad():
+            self.model.eval()
 
-        rotation_step = 10
-        angles = [0 + i * rotation_step for i in range(360 // rotation_step)]
+            rotation_step = 10
+            angles = [0 + i * rotation_step for i in range(360 // rotation_step)]
 
-        predictions = []
-        for angle in angles:
-            image_rotated = Image.fromarray((image * 255).astype(np.uint8)) \
-                .rotate(angle, fillcolor=WHITE)
-            # plt.imshow(image_rotated)
-            # plt.show()
+            predictions = []
+            for angle in angles:
+                image_rotated = Image.fromarray((image * 255).astype(np.uint8)) \
+                    .rotate(angle, fillcolor=WHITE)
+                # plt.imshow(image_rotated)
+                # plt.show()
 
-            image_to_classify = self.preprocess_image(image_rotated)
+                image_to_classify = self.preprocess_image(image_rotated)
 
-            # plt.imshow(image_to_classify.reshape(28, 28), cmap="gray")
-            # plt.show()
+                # plt.imshow(image_to_classify.reshape(28, 28), cmap="gray")
+                # plt.show()
 
-            pred, conf = self.model.predict(image_to_classify.unsqueeze(0))
-            predictions.append([pred.item(), conf.item(), angle])
-            # print(f"Angle {angle}, pred: {pred.item()}, conf {conf.item()}")
+                pred, conf = self.model.predict(image_to_classify.unsqueeze(0))
+                predictions.append([pred.item(), conf.item(), angle])
+                # print(f"Angle {angle}, pred: {pred.item()}, conf {conf.item()}")
 
         predictions = np.array(predictions)
         highest_conf_ind = np.argmax(predictions[:, 1])

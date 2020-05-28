@@ -79,13 +79,14 @@ def train(model, nb_epochs, train_loader, val_loader, test_loader, device, eval_
         losses.append(epoch_loss)
 
         if (e + 1) % eval_freq == 0:
-            acc = evaluate_model(model, val_loader, device)
-            val_acc.append(acc)
-            print(f"val acc: {acc}")
+            with torch.no_grad():
+                acc = evaluate_model(model, val_loader, device)
+                val_acc.append(acc)
+                print(f"val acc: {acc}")
 
-            acc = evaluate_model(model, test_loader, device)
-            test_acc.append(acc)
-            print(f"test acc: {acc}")
+                acc = evaluate_model(model, test_loader, device)
+                test_acc.append(acc)
+                print(f"test acc: {acc}")
 
             if test_acc[-1] > best_accuracy:
                 best_model = copy.deepcopy(model)
@@ -157,7 +158,7 @@ if __name__ == "__main__":
     dataset = datasets.ImageFolder(root="generated_dataset/digits",
                                    transform=preprocess_image)
     train_loader, val_loader = get_loaders(dataset, batch_size=32)
-    generate_model("digits", train_loader, val_loader, None, 5, nb_epochs=5)
+    generate_model("digits", train_loader, val_loader, None, 10, nb_epochs=20)
 
     # Train operators model
     generate_dataset(data_type="operators",
@@ -173,4 +174,4 @@ if __name__ == "__main__":
     dataset = datasets.ImageFolder(root="generated_dataset/operators",
                                    transform=preprocess_image)
     train_loader, val_loader = get_loaders(dataset, batch_size=32)
-    generate_model("operators", train_loader, val_loader, None, 5, nb_epochs=5)
+    generate_model("operators", train_loader, val_loader, None, 5, nb_epochs=3)

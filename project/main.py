@@ -13,7 +13,7 @@ from utils import box2image, postprocess_predicted_sequence, create_video_datase
 
 def parse_arguments():
     parser = argparse.ArgumentParser("Testing project")
-    parser.add_argument('--input', default="videos/robot_parcours_3.avi", type=str,
+    parser.add_argument('--input', default="videos/robot_parcours_1.avi", type=str,
                         help='Path to the input video file')
     parser.add_argument('--output', default="videos/output.avi", type=str,
                         help='Path where to save output video file')
@@ -28,7 +28,7 @@ def main(args):
     print(f"Read video with {len(frames)} frames")
 
     # Extracting trajectory
-    robot_trajectory = get_robot_locations(frames, method="auto", return_boxes=False)
+    robot_trajectory = get_robot_locations(frames, method="frame_differencing", return_boxes=False)
     draw(frames[-1], trajectory=robot_trajectory, title=f"Extracted robot's trajectory")
 
     # Extracting objects
@@ -47,13 +47,13 @@ def main(args):
 
     # Passed objects classification
     digits = passed_objects[::2]
-    classifier_digit = CNNClassifier(data_type="digits")
+    classifier_digit = CNNClassifier(data_type="digits", method='otsu')
     predictions_digit = [(classifier_digit.predict(image, print_info=True), frame_ind)
                          for (image, frame_ind) in digits]
     print("Digit predictions", predictions_digit)
 
     operators = passed_objects[1::2]
-    classifier_operator = CNNClassifier(data_type="operators")
+    classifier_operator = CNNClassifier(data_type="operators", method='otsu')
     predictions_operator = [(classifier_operator.predict(image, print_info=True), frame_ind)
                             for (image, frame_ind) in operators]
     print("Operator predictions", predictions_operator)
@@ -76,6 +76,8 @@ def main(args):
     assert len(frames) == len(annotated_frames)
     frames2video(annotated_frames, args.output)
     print("Output video created!")
+
+    return expression
 
 
 if __name__ == "__main__":
