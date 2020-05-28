@@ -17,6 +17,7 @@ results = []
 if TEST_ON_AVAILABLE_VIDEOS:
     files = [os.path.join("videos", filename) for filename in os.listdir("videos") if filename != "output.avi"]
 else:
+    print("Creating new videos")
     files = [generate_new_video() for i in range(NUM_VIDEOS_TO_GENERATE)]
 
 for i, src_file_path in enumerate(files):

@@ -9,9 +9,9 @@ from cnn.networks import ConvNetSmall, ConvNet
 from cnn.dataset_creation import inverse_color, to_binary
 
 if os.getcwd().split('\\')[-1] == "project":
-    WEIGHTS_PATH = "cnn/weights"
+    WEIGHTS_PATH = "cnn/weights180"
 elif os.getcwd().split('\\')[-1] == "cnn":
-    WEIGHTS_PATH = "weights"
+    WEIGHTS_PATH = "weights180"
 
 WHITE = (255, 255, 255)
 
@@ -40,18 +40,15 @@ class CNNClassifier(BaseClassifier):
         else:
             raise NotImplementedError
 
-        # # Build model
-        # self.model = ConvNet(nb_classes=nb_classes)
         # Load weights
         self.model.load_state_dict(torch.load(weights_path))
 
         self.preprocess_image = transforms.Compose([
             transforms.Grayscale(num_output_channels=1),
             transforms.Lambda(inverse_color),
-            # transforms.Lambda(to_binary),
             transforms.Lambda(lambda img: to_binary(img, method)),
             # TODO use instead of resizing in box2image function
-            # Issue: Fills with opposite color
+            # Issue: Fills with opposite colors
             # transforms.Resize((28, 28)),
             transforms.ToTensor(),
             # transforms.Normalize((MEAN,), (STD,)),
@@ -60,6 +57,8 @@ class CNNClassifier(BaseClassifier):
     def predict(self, image, return_raw_label=False, print_info=False):
         """
         Predicts class with use of 36 rotations of input image
+        :param print_info: If True prints
+        :param return_raw_label:
         :param image: Image to classify as numpy array
         :return: predicted class as string
         """

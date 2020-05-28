@@ -105,7 +105,8 @@ def extract_objects(image, method='canny', fill_by='binary_closing', return_boxe
         if (width / height < threshold_ratio) \
                 and (height / width < threshold_ratio) \
                 and (max_size_threshold > height > min_size_threshold) \
-                and (max_size_threshold > width > min_size_threshold):
+                and (max_size_threshold > width > min_size_threshold)\
+                and len(region) > 30:
         # if (width / height < threshold_ratio) and (height / width < threshold_ratio):
             boxes_reduced.append(box)
             regions_reduced.append(region)

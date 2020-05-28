@@ -166,7 +166,7 @@ if __name__ == "__main__":
     # Training using stored data (more convenient since we can first generate large dataset and then train on it)
     # Train digits model
     generate_dataset(data_type="digits",
-                     nb_samples=2048,
+                     nb_samples=4096,
                      use_only_video_dataset=False,
                      train_rotation=180,
                      test_rotation=180
@@ -185,7 +185,7 @@ if __name__ == "__main__":
 
     # Train operators model
     generate_dataset(data_type="operators",
-                     nb_samples=2048,
+                     nb_samples=4096,
                      use_only_video_dataset=False,
                      train_rotation=180,
                      test_rotation=180

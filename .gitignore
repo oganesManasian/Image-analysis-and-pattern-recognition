@@ -14,3 +14,4 @@ project/cnn/metrics/*
 project/videos/output.avi
 project/cnn/generated_dataset/*
 
+*.avi

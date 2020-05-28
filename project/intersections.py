@@ -3,7 +3,7 @@ import numpy as np
 
 def detect_intersections(trajectory_raw, boxes, interpolate_trajectory=True, interpolation_param=10, tol_percent=0.1):
     """
-
+    Detects intersection of trajectory and bounding boxes
     :param trajectory_raw:
     :param boxes:
     :param interpolate_trajectory: Augment trajectory by points on line between trajectory points
@@ -67,6 +67,13 @@ def detect_intersections_reverse(robot_boxes, object_centers):
 
 
 def is_point_in_box(point, box, tol_percent=0):
+    """
+    Chec whether point is inside the box or within distance which is width * tol_percent
+    :param point:
+    :param box:
+    :param tol_percent:
+    :return:
+    """
     tol = (box[2] - box[0]) * tol_percent
     return box[0] - tol <= point[0] <= box[2] + tol \
            and box[1] - tol <= point[1] <= box[3] + tol

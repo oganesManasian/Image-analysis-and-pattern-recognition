@@ -4,9 +4,6 @@ import numpy as np
 import os
 from robot_tracking import get_robot_locations
 
-BLACK = (0, 0, 0)
-GREEN = (0, 255, 0)
-
 
 def read_video(filepath):
     frames = []
@@ -27,7 +24,7 @@ def read_video(filepath):
     return frames
 
 
-def annotate_frames(frames, seq, expression_result, trajectory):
+def annotate_frames(frames, seq, expression_result, trajectory, boxes):
     reversed_seq = list(reversed(seq))
     complete_expression = ""
     new_frames = []
@@ -42,21 +39,28 @@ def annotate_frames(frames, seq, expression_result, trajectory):
             complete_expression += str(expression_result)
 
         # Writing on image
-        new_frame = write_on_frame(frames[i], complete_expression, trajectory[:i])
+        boxes_to_display = [box for (box, step) in boxes if step not in [i, i - 1, i - 2, i - 3]]
+        new_frame = write_on_frame(frames[i], complete_expression, trajectory[:i], boxes_to_display)
         new_frames.append(new_frame)
 
     return new_frames
 
 
-def write_on_frame(frame, text, line):
+def write_on_frame(frame, text, line, boxes):
     img = Image.fromarray(frame)
     draw = ImageDraw.Draw(img)
 
     font = ImageFont.truetype("fonts/Montserrat-Bold.otf", 30)
+    fill_color = (0, 0, 0)  # Making font black
     draw.text((img.width // 4, int(img.height * 0.85)), text,
-              font=font, fill=BLACK)
+              font=font, fill=fill_color)
 
-    draw.line(xy=line, width=1, fill=GREEN)
+    green = (9, 176, 34)
+    red = (171, 21, 21)
+    draw.line(xy=line, width=1, fill=green)
+
+    for box in boxes:
+        draw.rectangle(xy=box, outline=red)
 
     return np.array(img)
 

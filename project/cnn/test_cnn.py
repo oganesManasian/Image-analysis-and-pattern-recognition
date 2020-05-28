@@ -27,16 +27,15 @@ def get_accuracy(model, dataloader):
 
 
 def test_model(data_type, nb_samples=1000, use_only_video_dataset=False):
+    """
+
+    :param data_type:
+    :param nb_samples:
+    :param use_only_video_dataset:
+    :return:
+    """
     print(f"Testing {data_type} model")
-    # Generate dataset
     generate_dataset(data_type=data_type, nb_samples=nb_samples, use_only_video_dataset=use_only_video_dataset)
-    # preprocess_image = transforms.Compose([
-    #     transforms.Grayscale(num_output_channels=1),
-    #     transforms.Lambda(inverse_color),
-    #     transforms.Lambda(to_binary),
-    #     transforms.ToTensor(),
-    #     # transforms.Normalize((,), (,)),
-    # ])
     test_dataset = datasets.ImageFolder(root=f"{GENERATED_DATASETS_DIR}/{data_type}",
                                         transform=transforms.ToTensor())
     test_loader = DataLoader(test_dataset, batch_size=1)

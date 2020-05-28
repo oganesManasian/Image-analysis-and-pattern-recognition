@@ -13,7 +13,7 @@ from utils import box2image, postprocess_predicted_sequence, create_video_datase
 
 def parse_arguments():
     parser = argparse.ArgumentParser("Testing project")
-    parser.add_argument('--input', default="videos/robot_parcours_2.avi", type=str,
+    parser.add_argument('--input', default="videos/robot_parcours_1.avi", type=str,
                         help='Path to the input video file')
     parser.add_argument('--output', default="videos/output.avi", type=str,
                         help='Path where to save output video file')
@@ -29,12 +29,12 @@ def main(args):
 
     # Extracting trajectory
     robot_trajectory = get_robot_locations(frames, method="frame_differencing", return_boxes=False)
-    draw(frames[-1], trajectory=robot_trajectory, title=f"Extracted robot's trajectory")
+    # draw(frames[-1], trajectory=robot_trajectory, title=f"Extracted robot's trajectory")
 
     # Extracting objects
     initial_image = frames[0]
     object_centers, object_boxes = extract_objects(initial_image)
-    draw(initial_image, boxes=object_boxes, title="Detected objects")
+    # draw(initial_image, boxes=object_boxes, title="Detected objects")
 
     # Create dataset from digits and operators extracted on video
     # create_video_dataset(initial_image, object_boxes)
@@ -77,7 +77,7 @@ def main(args):
     print(f"Expression evaluation:\n{expression}{expression_result}")
 
     # Create output video
-    annotated_frames = annotate_frames(frames, seq, expression_result, robot_trajectory)
+    annotated_frames = annotate_frames(frames, seq, expression_result, robot_trajectory, passed_boxes)
     assert len(frames) == len(annotated_frames) and "Not correct number of annotated frames"
     frames2video(annotated_frames, args.output)
     print("Output video created!")
