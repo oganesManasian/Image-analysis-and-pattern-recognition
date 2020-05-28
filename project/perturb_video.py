@@ -3,17 +3,17 @@ from skimage import exposure
 from numpy.random import uniform
 from video import frames2video
 
-def rotate_and_pert_brightness(frames):
+def rotate_and_pert_brightness(frames, save_path):
     """ Randomly changes brightness and rotation of the frames. 
         It outputs the adjusted frames and save the video in the video_files.
     """
     
-    angle = uniform(0, 180)
-    gamma = uniform(0, 2)
+    angle = uniform(-180, 180)
+    gamma = uniform(0.5, 1.5)
     
     frames_adjusted = [(rotate(brightness(frame, gamma=gamma), angle=angle) * 255).astype('uint8') for frame in frames]
     
-    frames2video(frames_adjusted, '../video_files/perturb_video.avi')
+    frames2video(frames_adjusted, save_path)
     
     return frames_adjusted
     
